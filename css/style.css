@@ -368,10 +368,10 @@ body {
 
 /* ---------- 牌库区按钮：↶悔棋留在牌堆上方；! 规则书 / ? 速查 竖排在牌堆右侧 ---------- */
 .piles-block {
+  position: relative;
+  width: 100%;
   display: flex;
-  flex-direction: row;
-  align-items: center; /* 右侧竖排按钮与牌堆组垂直居中对齐 */
-  gap: 10px;
+  justify-content: center; /* 牌堆组保持水平居中 */
 }
 .piles-main {
   display: flex;
@@ -380,7 +380,15 @@ body {
   gap: 6px;
 }
 #corner-btns { display: flex; gap: 8px; }
-#side-btns { display: flex; flex-direction: column; gap: 8px; }
+#side-btns {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%); /* 贴中央区右边缘、与牌堆垂直居中 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 #help-btn, #rules-btn, #undo-btn {
   width: 30px;
   height: 30px;
