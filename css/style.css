@@ -1,0 +1,495 @@
+/* style.css — 布局与主题（海洋风） */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* 牌宽跟视口走（宽、高哪个更紧就按哪个缩），手机上一屏放得下、不用上下滑。
+     其余档位都按手牌宽的比例派生，比例沿用旧的 74:50:104:92:44；
+     高上限 74px 保证桌面大屏上跟以前一样大。 */
+  --hand-w: clamp(42px, min(13.4vw, 10.2vh), 74px);
+  --table-w: calc(var(--hand-w) * 0.676);
+  --pile-w: calc(var(--hand-w) * 1.405);
+  --ov-w: calc(var(--hand-w) * 1.243);
+  --mini-w: calc(var(--hand-w) * 0.595);
+  /* 牌面文字与颜色图标的字号也随牌宽走 */
+  --card-name-fs: clamp(8.5px, calc(var(--hand-w) * 0.155), 11px);
+  --card-small-name-fs: clamp(7.5px, calc(var(--hand-w) * 0.13), 9px);
+  --ci: clamp(9px, calc(var(--hand-w) * 0.2), 15px); /* 颜色识别图标边长 */
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  color: #233240;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, #eaf6fd 0%, transparent 60%),
+    linear-gradient(180deg, #a9dcef 0%, #5aa9cf 55%, #2f7ba6 100%);
+  /* 横向不滚；纵向一律允许滚动 —— 内容超高时不再被硬裁掉（手机上以前牌库会被压成 0 高且看不了） */
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-tap-highlight-color: transparent; /* 去掉触屏点击时的灰色闪块（改用 :active 做反馈） */
+  overscroll-behavior-y: none;             /* 手机端阻止下拉刷新/回弹 */
+}
+
+#app {
+  /* 用 min-height 而不是 height：内容多时整页可向下生长并滚动，
+     同高度富余时 1fr 仍会把中间区拉开（视觉与以前一致）；
+     dvh 跟随手机地址栏收放，避免 100vh 把底部手牌顶到工具栏下面 */
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+  padding: 10px 14px;
+  touch-action: manipulation; /* 去掉触屏 300ms 点击延迟，并禁掉双击缩放 */
+}
+
+/* ---------- 区域通用 ---------- */
+#ai-zone, #player-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: rgba(255, 252, 243, 0.75);
+  box-shadow: 0 2px 10px rgba(90, 70, 40, 0.12);
+  border: 1px solid rgba(150, 120, 70, 0.25);
+}
+
+#player-zone { background: rgba(252, 248, 235, 0.85); }
+
+.zone-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap; /* 窄屏下“总分…”整段换行，不挤掉名字 */
+  gap: 0 8px;
+}
+.pname { font-weight: bold; font-size: 15px; color: #6b5433; }
+.pstats { font-size: 13px; color: #7a6a4d; }
+.pstats b { color: #b3541e; font-size: 15px; }
+
+#center-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 高度有富余时把空白分到“牌库上下”两处（日志贴玩家区），而不是堆在底部变成一块死白 */
+  justify-content: space-between;
+  gap: 8px;
+  /* 这里故意不再写 min-height: 0 —— 那个写法允许网格把中央区压到 0 高，
+     手机上手牌一换行，牌库/弃牌堆/日志会整体消失 */
+}
+
+/* ---------- 阶段条 ---------- */
+#phase-bar {
+  font-size: 14px;
+  color: #5d4b2c;
+  background: rgba(255, 250, 236, 0.9);
+  border: 1px dashed #c9b384;
+  border-radius: 20px;
+  padding: 5px 18px;
+  min-height: 28px;
+}
+
+/* ---------- 弃牌堆区 ---------- */
+.piles { display: flex; gap: 44px; align-items: flex-start; }
+.pile-wrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.pile-label { font-size: 13px; color: #8a744f; }
+
+/* ---------- 日志 ---------- */
+#log {
+  width: min(760px, 96%);
+  flex: 1 1 auto;
+  min-height: 56px;
+  max-height: 200px; /* 中央区放大：多留几行历史 */
+  overflow-y: auto;
+  font-size: 12.5px;
+  color: #7a6a4d;
+  background: rgba(255, 252, 243, 0.65);
+  border: 1px solid rgba(150, 120, 70, 0.22);
+  border-radius: 8px;
+  padding: 6px 12px;
+  line-height: 1.6;
+}
+.log-line.you { color: #1a5c8a; }
+.log-line.ai { color: #8a4a1a; }
+.log-line.sys { color: #8a744f; }
+
+/* ---------- 手牌/面前行 ----------
+   最小高度按牌档算（不留死高度）；空行直接塌掉，
+   否则开局时 AI 区会白白占掉两行空白、把玩家区顶到屏外 */
+.hand-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: calc(var(--hand-w) * 1.4 + 8px);
+  align-items: flex-end;
+  padding: 4px 2px;
+}
+.table-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: calc(var(--table-w) * 1.4 + 6px);
+  align-items: flex-end;
+  padding: 2px;
+}
+/* AI 手牌用的是 mini 牌，行高按 mini 算 */
+#ai-hand { min-height: calc(var(--mini-w) * 1.4 + 8px); }
+/* 空行塌掉（#ai-hand:empty 特异性高于 #ai-hand，否则盖不住） */
+.hand-row:empty, .table-row:empty, #ai-hand:empty { min-height: 0; padding: 0; }
+
+/* ---------- 按钮条 ---------- */
+#call-bar, #duo-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 30px;
+}
+/* 空条塌掉：写在断点外，否则横屏（宽 >640px）下两个空条会白占 60px 把整页顶出一屏 */
+#call-bar:empty, #duo-bar:empty { min-height: 0; }
+.call-tip { font-size: 13px; color: #b3541e; font-weight: bold; }
+.sel-info { font-size: 12px; color: #8a4a1a; }
+
+.btn {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  border: 1px solid #b98d4f;
+  background: linear-gradient(180deg, #fdf3dd, #f3e2bd);
+  color: #5d4b2c;
+  cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(120, 90, 40, .25); }
+.btn:active { transform: translateY(0); }
+.btn.primary { background: linear-gradient(180deg, #3f7d4e, #2f6340); color: #fff; border-color: #2f6340; }
+.btn.danger { background: linear-gradient(180deg, #d9534f, #b03a36); color: #fff; border-color: #b03a36; }
+.btn.warn { background: linear-gradient(180deg, #e8912d, #c97416); color: #fff; border-color: #c97416; }
+.btn.ghost { background: transparent; border-style: dashed; }
+.btn.disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn.mini { font-size: 12px; padding: 3px 10px; }
+/* 按钮文案的长/短两套：默认（桌面）显长的，手机断点里反过来 */
+.btn .bt-short { display: none; }
+.duo-btn { border-color: #3f7d4e; color: #2f6340; font-weight: bold; }
+
+/* ---------- AI 气泡 ---------- */
+#ai-bubble {
+  min-height: 18px;
+  font-size: 12px;
+  color: #8a4a1a;
+  font-style: italic;
+}
+
+/* ---------- 覆盖层 ---------- */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 30, 15, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+#overlay.hidden { display: none; }
+#overlay-card {
+  background: #fdf8ec;
+  border-radius: 16px;
+  padding: 22px 26px;
+  max-width: min(760px, 92vw);
+  max-height: 86vh;
+  max-height: 86dvh;
+  overflow: auto;
+  box-shadow: 0 12px 40px rgba(30, 20, 5, 0.4);
+  text-align: center;
+}
+#overlay-card h3 { margin-bottom: 10px; color: #5d4b2c; }
+#overlay-card .row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 10px 0;
+  align-items: flex-end;
+}
+#overlay-card .ov-card { cursor: pointer; border-radius: 10px; padding: 4px; transition: transform .1s; }
+#overlay-card .ov-card:hover { transform: translateY(-3px); background: #f3e6c6; }
+#overlay-card .ov-pile { margin: 8px 0; }
+#overlay-card .ov-pile-title { font-size: 12px; color: #8a744f; margin-bottom: 4px; }
+#overlay-card p.hint { font-size: 12px; color: #a08c60; margin: 6px 0; }
+
+/* 弃牌堆选择：亮出两堆顶牌辅助判断 */
+#overlay-card .discard-choices { display: flex; gap: 18px; justify-content: center; margin: 8px 0; }
+#overlay-card .dc-col {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 12px;
+  background: rgba(255, 250, 236, 0.7); border: 1px solid rgba(150, 120, 70, 0.3);
+}
+#overlay-card .dc-col.disabled { opacity: .45; }
+#overlay-card .dc-col.ref { background: transparent; border: 1px dashed rgba(150, 120, 70, 0.4); }
+#overlay-card .dc-label { font-size: 12px; color: #8a744f; }
+#overlay-card .dc-top { min-height: 64px; display: flex; align-items: center; justify-content: center; }
+#overlay-card .dc-empty {
+  width: 46px; height: 64px; border: 2px dashed #c9b384; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; color: #c9b384; font-size: 13px;
+}
+#overlay-card .settle {
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.6;
+  background: rgba(240, 228, 200, 0.5);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 6px 0;
+}
+/* 结算明细表 */
+.settle-head { font-weight: bold; color: #6b5433; margin-bottom: 4px; }
+/* 结算亮手牌 */
+.settle-hand-title { font-size: 12px; color: #8a744f; margin: 4px 0 3px; }
+.settle-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 250, 236, 0.7);
+  border: 1px dashed rgba(150, 120, 70, 0.35);
+  border-radius: 8px;
+  min-height: 64px;
+  align-items: center;
+}
+.settle-hand .hint { font-size: 12px; color: #a08c60; }
+.settle-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 56px;
+  gap: 10px;
+  padding: 2px 0;
+  border-bottom: 1px dashed rgba(150, 120, 70, 0.25);
+  align-items: baseline;
+}
+.settle-row .s-item { color: #6b5433; font-weight: bold; }
+.settle-row .s-desc { color: #7a6a4d; }
+.settle-row .s-pts { text-align: right; font-weight: bold; color: #2f6340; }
+.settle-row .s-pts.zero { color: #a08c60; font-weight: normal; }
+.settle-row.settle-total {
+  border-bottom: none;
+  border-top: 2px solid rgba(150, 120, 70, 0.45);
+  margin-top: 4px;
+  padding-top: 6px;
+  font-weight: bold;
+}
+.settle-row.settle-total .s-desc { color: #b3541e; font-weight: bold; }
+#overlay-card .score-line { font-size: 22px; font-weight: bold; color: #b3541e; margin: 10px 0; }
+
+/* ---------- 规则速查面板 ---------- */
+#overlay-card .help-sec { text-align: left; margin: 12px 0; }
+#overlay-card .help-sec-title {
+  font-weight: bold; font-size: 13px; color: #b3541e;
+  border-left: 3px solid #e8912d; padding-left: 8px; margin-bottom: 5px;
+}
+#overlay-card .help-steps, #overlay-card .help-ul {
+  margin: 0; padding-left: 20px; font-size: 12.5px; color: #5d4b2c; line-height: 1.75;
+}
+#overlay-card .help-ul { list-style: disc; }
+#overlay-card .help-p { font-size: 12.5px; color: #5d4b2c; margin: 4px 0; line-height: 1.6; }
+#overlay-card .help-call {
+  font-size: 12.5px; color: #5d4b2c; line-height: 1.6; text-align: left;
+  background: rgba(255, 250, 236, 0.7); border: 1px solid rgba(150, 120, 70, 0.28);
+  border-radius: 10px; padding: 7px 10px; margin: 6px 0;
+}
+#overlay-card .help-call > b { color: #b3541e; }
+#overlay-card .help-call .help-ul { margin: 4px 0; }
+#overlay-card .help-eg {
+  display: block; margin-top: 4px; padding: 5px 8px; font-size: 12px; color: #6b5433;
+  background: rgba(232, 145, 45, 0.12); border-left: 3px solid #e8a06a; border-radius: 4px;
+}
+#overlay-card .help-tb { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+#overlay-card .help-tb td, #overlay-card .help-tb th {
+  border: 1px solid rgba(150, 120, 70, 0.3); padding: 3px 5px; text-align: center; color: #5d4b2c;
+}
+#overlay-card .help-tb th { background: rgba(255, 250, 236, 0.8); font-weight: bold; color: #6b5433; }
+#overlay-card .help-tb > tr > td:first-child,
+#overlay-card .help-tb tr:first-child td:first-child {
+  font-weight: bold; color: #6b5433; background: rgba(255, 250, 236, 0.6);
+}
+/* 键值表：首列窄、末列左对齐描述 */
+#overlay-card .help-tb.kv td:first-child { width: 30%; }
+#overlay-card .help-tb.kv td:last-child { text-align: left; }
+
+/* ---------- 牌信息弹层 / 牌表页小件 ---------- */
+/* 「一扩」标记 */
+.exp-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: bold;
+  color: #a44a1e;
+  background: #fdeee6;
+  border: 1px solid #d07a4a;
+  border-radius: 7px;
+  padding: 0 5px;
+  line-height: 1.5;
+  vertical-align: 2px;
+}
+/* 颜色识别图标的图例（规则书里一行 11 个）；图标本体在 cards.css */
+.color-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ---------- 牌库区右上角：悔棋 / 说明模式 / 规则书 / 规则速查 / 一扩 ---------- */
+.piles-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 按钮行与牌堆组右边缘对齐 */
+  gap: 6px;
+}
+#corner-btns { display: flex; gap: 8px; }
+#help-btn, #rules-btn, #undo-btn, #info-btn, #exp-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #b98d4f;
+  background: #fdf3dd;
+  color: #6b5433;
+  font-size: 15px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+}
+#rules-btn {
+  background: #eaf4fb;
+  border-color: #5a9bd0;
+  color: #1a5c8a;
+}
+#info-btn {
+  background: #f3eefb;
+  border-color: #8a6ab0;
+  color: #5a3d80;
+  font-style: italic;
+}
+#exp-btn {
+  background: #fdeee6;
+  border-color: #d07a4a;
+  color: #a44a1e;
+  font-size: 12px; /* 「扩」是汉字，30px 圆里得缩字号才不贴边 */
+}
+/*  toggle 类按钮（说明模式 / 一扩）的激活态：填充反色，一眼看出开着 */
+#corner-btns button.on {
+  background: #6b5433;
+  border-color: #4a3a20;
+  color: #fdf3dd;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35);
+}
+#info-btn.on { background: #5a3d80; border-color: #3d2759; color: #f3eefb; }
+#exp-btn.on { background: #a44a1e; border-color: #7a3413; color: #fdeee6; }
+#undo-btn {
+  background: #eef6ee;
+  border-color: #6aa06a;
+  color: #2f6340;
+}
+#undo-btn:disabled {
+  opacity: .45;
+  cursor: default;
+  background: #f1efe8;
+  border-color: #c5bda6;
+  color: #9a917a;
+}
+
+/* ---------- 响应式 ---------- */
+/* 窄窗口 / 平板：适度收紧，卡片尺寸由 cards.css 的同名断点控制 */
+@media (max-width: 900px) {
+  #app { padding: 6px; gap: 4px; }
+  .piles { gap: 22px; }
+  #log { max-height: 120px; }
+}
+
+/* 触屏（手机/平板）：无 hover 可用，所以触控目标放大到 44px、并用 :active 做反馈 */
+@media (hover: none), (pointer: coarse) {
+  .btn { min-height: 44px; padding: 10px 18px; font-size: 14px; }
+  .btn.mini { min-height: 40px; padding: 7px 14px; font-size: 13px; }
+  #help-btn, #rules-btn, #undo-btn, #info-btn, #exp-btn { width: 44px; height: 44px; font-size: 18px; }
+  #exp-btn { font-size: 15px; }
+  /* 触屏上 :hover 会“粘住”不消，这里关掉并换成按下去的 :active 反馈 */
+  .btn:hover { transform: none; box-shadow: none; }
+  .btn:active { transform: scale(.97); box-shadow: 0 1px 3px rgba(120, 90, 40, .3); }
+  #overlay-card .ov-card:hover { transform: none; background: transparent; }
+  #overlay-card .ov-card:active { transform: scale(.97); background: #f3e6c6; }
+}
+
+/* 手机竖屏：中央区（牌库+日志）优先保留，玩家面板缩到最小可用 */
+@media (max-width: 640px) {
+  #app { padding: 5px; gap: 3px; }
+  #ai-zone, #player-zone { padding: 4px 6px; gap: 4px; border-radius: 10px; }
+  .pname { font-size: 13px; }
+  .pstats { font-size: 11.5px; }
+  .pstats b { font-size: 12.5px; }
+  #phase-bar { font-size: 12px; padding: 4px 10px; min-height: 24px; text-align: center; }
+  .piles { gap: 10px; }
+  .pile-label { font-size: 10.5px; }
+  .piles-block { gap: 4px; }
+  /* 五个圆钮：触屏块里的 44px 在手机上一行占掉 252px、把牌库挤得很局促，
+     收到 32px（本块排在触屏块之后，同特异性会覆盖它的 44px） */
+  #help-btn, #rules-btn, #undo-btn, #info-btn, #exp-btn { width: 32px; height: 32px; font-size: 14px; }
+  #exp-btn { font-size: 12px; }
+  #corner-btns { gap: 6px; }
+  /* 日志：手机上不锁死小高度（以前 52px，剩下的 120~180px 变成牌库下面的死空白），
+     改成随视口高度给到 26vh，多出来的历史自己滚，不用的部分交给 space-between 分散 */
+  #log { min-height: 28px; max-height: 26vh; font-size: 11px; padding: 3px 8px; line-height: 1.45; }
+  /* 玩家面板：行高由 :root 的牌宽变量自动算（不再写死 84/56） */
+  .hand-row { gap: 4px; padding: 2px 1px; }
+  .table-row { gap: 4px; }
+  #call-bar, #duo-bar { gap: 6px; min-height: 26px; }
+  .call-tip { font-size: 12px; }
+  .sel-info { font-size: 11px; }
+  #ai-bubble { font-size: 11px; min-height: 12px; }
+  /* 弹层：满宽、内边距收紧，靠自身 overflow:auto 滚动 */
+  #overlay-card { padding: 14px 10px; border-radius: 12px; max-height: 92dvh; }
+  #overlay-card h3 { font-size: 17px; }
+  #overlay-card .score-line { font-size: 18px; }
+  #overlay-card .row { gap: 8px; margin: 8px 0; }
+  #overlay-card .settle { font-size: 12px; padding: 6px 8px; }
+  .settle-row { grid-template-columns: 58px 1fr 42px; gap: 6px; }
+  .settle-hand { min-height: 56px; gap: 4px; padding: 4px 6px; }
+  #overlay-card .help-tb { font-size: 11px; }
+  #overlay-card .help-tb td, #overlay-card .help-tb th { padding: 2px 3px; }
+  #overlay-card .help-steps, #overlay-card .help-ul,
+  #overlay-card .help-p, #overlay-card .help-call { font-size: 11.5px; }
+  #overlay-card .help-ul, #overlay-card .help-steps { padding-left: 16px; }
+  #overlay-card .discard-choices { gap: 10px; }
+  #overlay-card .dc-col { padding: 6px 8px; }
+  /* 宣告/配对按钮：文案（“已选：…”“当前 N 分…”）永远独占一行，按钮只在剩下的行里分宽。
+     关键是 min-width 必须留够（4em ≈ 4 个汉字）：之前写的是 flex:1 1 0 + min-width:0，
+     按钮可以被无限压缩，长文案一出现就把三个按钮挤成 42px（内容只有 30px），
+     “跳过 / 结束回合”变成一字一行的竖条，整条被撑到 80px 高。 */
+  #call-bar .btn, #duo-bar .btn {
+    flex: 1 1 auto; min-width: 4em;
+    padding: 8px 5px; font-size: 12.5px; line-height: 1.25;
+  }
+  #call-bar .call-tip, #call-bar .sel-info,
+  #duo-bar .call-tip, #duo-bar .sel-info { flex: 1 1 100%; text-align: center; }
+  /* 窄屏改用短文案（“Stop 立即结算”而不是“Stop（立即结算，无颜色奖励）”），
+     否则三个宣告按钮的整宽加起来超 366px，会被顶成三行把玩家区抬高 30px */
+  #call-bar .btn .bt-long, #duo-bar .btn .bt-long { display: none; }
+  #call-bar .btn .bt-short, #duo-bar .btn .bt-short { display: inline; }
+}
+
+/* 矮视口（手机横屏 / 小窗口）：宽度超过 640px 所以上面的手机块不生效，
+   但纵向只有 390px 可用，这里把提示条/日志/气泡收到最小，否则整页要上下滑 */
+@media (max-height: 560px) {
+  /* 牌档再降一档：390px 高时按 10.2vh 算会卡在 42px 下限下不来，牌行就吃掉横屏本就不多的余量 */
+  :root { --hand-w: clamp(34px, min(13.4vw, 9.4vh), 74px); }
+  #app { padding: 4px; gap: 2px; }
+  #ai-zone, #player-zone { padding: 3px 8px; gap: 2px; }
+  #phase-bar { font-size: 12px; padding: 2px 12px; min-height: 20px; }
+  #log { min-height: 20px; max-height: 12vh; font-size: 11px; line-height: 1.45; padding: 3px 8px; }
+  #ai-bubble { min-height: 0; }
+  .piles { gap: 14px; }
+  .pile-label { font-size: 10.5px; }
+  #call-bar, #duo-bar { min-height: 24px; }
+}
+
+/* 注：触屏块 `@media (hover: none), (pointer: coarse)` 必须排在上面、
+   手机断点之前，否则同特异性下它会盖掉 640px 块里的按钮规则。 */

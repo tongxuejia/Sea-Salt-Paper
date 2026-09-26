@@ -1,0 +1,9 @@
+# 开发文档与截图不入库（只保留最小可运行组件）
+PRD.md
+tasks.md
+shot-*.png
+verify-*.png
+
+# 自测页（开发用，依赖 tests.js，不随游戏发布）
+tests.html
+tests.js

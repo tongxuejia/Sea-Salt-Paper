@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海盐折纸 · 全牌表（校看用）</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/cards.css">
+<style>
+/* cards.html 专用样式：只借用 style.css 的主题与 cards.css 的牌面 */
+/* 牌表页不跟视口缩：这是个对照用的长页面（本来就整页滚动），牌太小看不出颜色 */
+:root { --hand-w: 74px; }
+body { overflow-y: auto; }
+#cp {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 14px 40px;
+}
+.cp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+}
+.cp-head h1 { font-size: 20px; color: #233240; }
+.cp-head a { color: #1a5c8a; font-size: 13px; }
+.cp-panel {
+  background: rgba(255, 252, 243, 0.92);
+  border: 1px solid rgba(150, 120, 70, 0.3);
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(90, 70, 40, 0.12);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.cp-panel > h2 {
+  font-size: 15px;
+  color: #6b5433;
+  border-bottom: 1px solid rgba(150, 120, 70, 0.25);
+  padding-bottom: 5px;
+  margin-bottom: 9px;
+}
+.cp-sub { font-size: 11.5px; color: #7a6a4d; font-weight: normal; }
+.cp-ctrl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; }
+.cp-ctrl label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.cp-stat { font-size: 12.5px; color: #4a3f2c; }
+.cp-stat b { color: #b3541e; }
+/* 类型表：一行一种牌，牌面 + 文字 */
+.cp-kind-title {
+  font-size: 13px; font-weight: bold; color: #a44a1e;
+  margin: 10px 0 4px;
+}
+.cp-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 7px 0;
+  border-bottom: 1px dashed rgba(150, 120, 70, 0.22);
+}
+.cp-item.cp-hidden { display: none; }
+.cp-item-body { flex: 1 1 0; min-width: 0; }
+.cp-item-name { font-size: 14px; font-weight: bold; color: #3a2f1c; }
+.cp-item-name .cp-count { font-size: 11.5px; font-weight: normal; color: #7a6a4d; }
+.cp-item-eff { font-size: 12px; color: #4a3f2c; margin-top: 3px; line-height: 1.5; }
+.cp-item-long { font-size: 11.5px; color: #5d4b2c; margin-top: 4px; padding-left: 10px; border-left: 2px solid rgba(150, 120, 70, 0.3); }
+.cp-colors { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; font-size: 11px; color: #4a3f2c; }
+.cp-colors span { display: inline-flex; align-items: center; gap: 3px; }
+.cp-score { font-size: 11.5px; color: #2f6340; margin-top: 3px; }
+/* 逐张清单 */
+.cp-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+.cp-oneline { font-size: 12px; color: #4a3f2c; margin: 6px 0 8px; }
+/* 颜色统计表 */
+table.cp-tb { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.cp-tb th, table.cp-tb td { border: 1px solid rgba(150, 120, 70, 0.3); padding: 4px 6px; text-align: center; }
+table.cp-tb th { background: rgba(255, 250, 236, 0.85); color: #6b5433; }
+table.cp-tb td.left { text-align: left; }
+table.cp-tb tr.cp-sum td { font-weight: bold; background: rgba(255, 250, 236, 0.6); }
+.cp-note { font-size: 12px; color: #5d4b2c; line-height: 1.7; }
+.cp-note ul { padding-left: 18px; margin: 4px 0; }
+.cp-warn { color: #a44a1e; font-weight: bold; }
+@media (max-width: 640px) {
+  #cp { padding: 8px 6px 30px; }
+  .cp-panel { padding: 9px 8px; border-radius: 10px; }
+  .cp-head h1 { font-size: 17px; }
+  .cp-item { gap: 7px; }
+}
+</style>
+</head>
+<body>
+<div id="cp">
+
+  <div class="cp-head">
+    <h1>海盐折纸 · 全牌表</h1>
+    <a href="index.html">← 返回对局</a>
+    <a href="tests.html">跑测试</a>
+  </div>
+
+  <div class="cp-panel">
+    <div class="cp-ctrl">
+      <label><input type="checkbox" id="cp-exp" checked> 包含一扩 Extra Salt（8 张）</label>
+      <label>颜色筛选
+        <select id="cp-color"><option value="">全部颜色</option></select>
+      </label>
+      <label><input type="checkbox" id="cp-long"> 展开完整效果说明</label>
+      <span class="cp-stat" id="cp-summary"></span>
+    </div>
+  </div>
+
+  <div class="cp-panel">
+    <h2>一、颜色分布统计 <span class="cp-sub">（用于校看逐张颜色指派是否符合预期）</span></h2>
+    <div id="cp-colors"></div>
+  </div>
+
+  <div class="cp-panel">
+    <h2>二、牌种一览 <span class="cp-sub">（14 基础种 + 5 一扩种；牌面为示意图，右上角 ×n = 牌库总张数）</span></h2>
+    <div id="cp-types"></div>
+  </div>
+
+  <div class="cp-panel">
+    <h2>三、逐张牌清单 <span class="cp-sub">（按建堆 id 顺序；id 稳定：关一扩 0–57，开一扩追加 58–65）</span></h2>
+    <div class="cp-oneline" id="cp-list-tip"></div>
+    <div class="cp-cards" id="cp-all"></div>
+  </div>
+
+  <div class="cp-panel">
+    <h2>四、本实现与实物的差异（请重点校看）</h2>
+    <div class="cp-note" id="cp-note"></div>
+  </div>
+
+</div>
+
+<script src="js/cards.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  'use strict';
+  const C = window.SPCards, UI = window.SPUI;
+  const $ = function (id) { return document.getElementById(id); };
+
+  // 类型入组顺序：与牌库建堆一致（美人鱼在前），一扩按 EXP_ORDER 追加
+  const BASE_KIND_ORDER = ['duo', 'special', 'collector', 'multiplier'];
+  const TYPE_ORDER = ['mermaid', 'crab', 'boat', 'fish', 'shark', 'swimmer',
+    'shell', 'octopus', 'penguin', 'sailor',
+    'lighthouse', 'shoal', 'colony', 'captain'].concat(C.EXP_ORDER);
+
+  // type → [{color, n}]，分别从基础牌堆与全量牌堆统计
+  function colorMap(cards) {
+    const m = {};
+    for (const c of cards) { (m[c.type] = m[c.type] || []).push(c.color); }
+    return m;
+  }
+  function tally(arr) {
+    const t = {};
+    for (const k of arr) t[k] = (t[k] || 0) + 1;
+    return t;
+  }
+
+  function swatch(color) {
+    // 直接用牌面上的颜色识别图标（ui.js 的 colorIconHTML），牌表与牌面保证一致
+    return UI.colorIconHTML(color, 'ci-inline');
+  }
+  function colorChips(colors) {
+    const t = tally(colors);
+    return Object.keys(t).map(function (k) {
+      return '<span>' + swatch(k) + C.COLORS[k].name + ' ×' + t[k] + '</span>';
+    }).join('');
+  }
+
+  // ---------- 控制：颜色下拉 ----------
+  const allColors = Object.keys(C.COLORS);
+  $('cp-color').innerHTML = '<option value="">全部颜色</option>' + allColors.map(function (k) {
+    return '<option value="' + k + '">' + C.COLORS[k].name + '</option>';
+  }).join('');
+
+  function state() {
+    return {
+      exp: $('cp-exp').checked,
+      color: $('cp-color').value,
+      long: $('cp-long').checked,
+    };
+  }
+
+  // ---------- 一、颜色统计 ----------
+  function renderColors(st) {
+    const full = C.makeCards(true);
+    const baseByColor = {}, expByColor = {};
+    for (const c of C.makeCards(false)) baseByColor[c.color] = (baseByColor[c.color] || 0) + 1;
+    for (const c of full) if (C.CARD_TYPES[c.type].exp) expByColor[c.color] = (expByColor[c.color] || 0) + 1;
+    let h = '<table class="cp-tb"><tr><th>颜色</th><th>基础</th>' +
+      (st.exp ? '<th>一扩</th><th>合计</th>' : '') + '</tr>';
+    let sb = 0, se = 0;
+    for (const k of allColors) {
+      const b = baseByColor[k] || 0, e = expByColor[k] || 0;
+      if (!b && !e) { h += '<tr><td class="left">' + swatch(k) + C.COLORS[k].name + '</td><td>0</td>' + (st.exp ? '<td>0</td><td>0</td>' : '') + '</tr>'; continue; }
+      sb += b; se += e;
+      h += '<tr><td class="left">' + swatch(k) + C.COLORS[k].name + '</td><td>' + b + '</td>' +
+        (st.exp ? '<td>' + e + '</td><td>' + (b + e) + '</td>' : '') + '</tr>';
+    }
+    h += '<tr class="cp-sum"><td class="left">合计 ' + (st.exp ? '66' : '58') + ' 张</td><td>' + sb + '</td>' +
+      (st.exp ? '<td>' + se + '</td><td>' + (sb + se) + '</td>' : '') + '</tr></table>';
+    $('cp-colors').innerHTML = h;
+  }
+
+  // ---------- 二、牌种一览 ----------
+  function renderTypes(st) {
+    const cards = C.makeCards(st.exp);
+    const map = colorMap(cards);
+    let h = '';
+    for (const kind of BASE_KIND_ORDER) {
+      const list = TYPE_ORDER.filter(function (t) {
+        return C.CARD_TYPES[t].kind === kind && (st.exp || !C.CARD_TYPES[t].exp);
+      });
+      if (!list.length) continue;
+      // 颜色筛选可能把整组滤空 → 连标题一起隐掉，不留空组
+      let groupHtml = '', visible = 0;
+      for (const t of list) {
+        const def = C.CARD_TYPES[t];
+        const colors = map[t] || [];
+        const hit = !st.color || colors.indexOf(st.color) >= 0;
+        if (hit) visible++;
+        groupHtml += '<div class="cp-item' + (hit ? '' : ' cp-hidden') + '">' +
+          UI.cardHTML({ id: 'demo-' + t, type: t, color: colors[0] || 'gray' }, 'hand') +
+          '<div class="cp-item-body">' +
+          '<div class="cp-item-name">' + def.name +
+          (def.exp ? ' <span class="exp-tag">一扩</span>' : '') +
+          ' <span class="cp-count">×' + def.count + ' 张 · ' + (colors.length ? colorsLen(colors) : '未入牌库') + '</span></div>' +
+          '<div class="cp-colors">' + colorChips(colors) + '</div>' +
+          '<div class="cp-item-eff">' + UI.EFFECT_TEXT[t] + '</div>' +
+          scoreLine(t) +
+          (st.long ? '<div class="cp-item-long">' + UI.EFFECT_LONG[t] + '</div>' : '') +
+          '</div></div>';
+      }
+      if (!visible) continue;
+      h += '<div class="cp-kind-title">' + UI.KIND_LABEL[kind] + '（' +
+        (st.color ? visible + ' / ' + list.length : list.length) + ' 种）</div>' + groupHtml;
+    }
+    $('cp-types').innerHTML = h;
+  }
+  function colorsLen(colors) {
+    const t = tally(colors);
+    return Object.keys(t).length + ' 种颜色';
+  }
+  function scoreLine(t) {
+    if (C.COLLECTOR_SCORES[t]) {
+      return '<div class="cp-score">收藏得分：' + C.COLLECTOR_SCORES[t].join(' / ') +
+        '（1 张 → ' + t + ' 满 ' + C.CARD_TYPES[t].count + ' 张）</div>';
+    }
+    if (C.MULTIPLIER_VALUES[t]) {
+      const mv = C.MULTIPLIER_VALUES[t];
+      return '<div class="cp-score">倍增：持有 1 张本牌 → 面前每张' +
+        C.CARD_TYPES[mv.target].name + ' +' + mv.per + ' 分</div>';
+    }
+    if (t === 'mermaid') return '<div class="cp-score">4 张即胜；每张 = 你最多颜色的张数</div>';
+    if (t === 'starfish') return '<div class="cp-score">三人组：海星 + 任意一对 = 3 分（取消该对效果）</div>';
+    if (t === 'seahorse') return '<div class="cp-score">代替收藏牌，按多 1 张重算（不超上限）</div>';
+    if (C.CARD_TYPES[t].kind === 'duo') return '<div class="cp-score">每 2 张 1 分（成对打到面前另触发效果）</div>';
+    return '';
+  }
+
+  // ---------- 三、逐张清单 ----------
+  function renderAll(st) {
+    const cards = C.makeCards(st.exp);
+    const shown = st.color ? cards.filter(function (c) { return c.color === st.color; }) : cards;
+    $('cp-list-tip').innerHTML = '共 ' + cards.length + ' 张' +
+      (st.color ? '，筛选出 ' + shown.length + ' 张（' + C.COLORS[st.color].name + '）' : '') +
+      '。牌面左上角小方块 = 颜色识别图标，旁边的「扩」= 一扩牌；悬停可看效果，小牌上图形只缩不隐。';
+    $('cp-all').innerHTML = shown.map(function (c) {
+      return '<div style="text-align:center">' + UI.cardHTML(c, 'mini') +
+        '<div style="font-size:10px;color:#4a3f2c;margin-top:2px">id ' + c.id + ' · ' + C.COLORS[c.color].name + '</div></div>';
+    }).join('') || '<div class="cp-note">该颜色在本实现里没有牌。</div>';
+  }
+
+  // ---------- 四、差异说明 ----------
+  function renderNote(st) {
+    $('cp-note').innerHTML =
+      '<ul>' +
+      '<li><b>牌数</b>：官方 Extra Salt 为 8 张 / 5 种效果 —— 1 螃蟹篮、2 水母、1 龙虾、3 海星、1 海马（Bombyx 规则 + Pandasaurus 发行说明口径）。</li>' +
+      '<li><b>逐张颜色</b>：已按官方牌表（66 张的 Card × Colour 矩阵）校正，不再是我的猜测。' +
+      '官方 11 色里的 <b>Teal</b> 本实现叫「青绿」、<b>Tan</b> 叫「棕褐」。' +
+      '校正前一扩 8 张里有 5 张猜错：龙虾（橙→<b>黑</b>）、海马（浅蓝→<b>白</b>）、螃蟹篮（深蓝→<b>绿</b>）、' +
+      '海星三张（黄/浅橙/绿→<b>深蓝/青绿/黄</b>）；水母两张（紫、粉）猜对了。</li>' +
+      '<li><b>美人鱼颜色</b>：官方表确认 4 张全为白色（与 Zatu 评测口径一致）。</li>' +
+      '<li><b>海星计分</b>：手里凑齐「一对 + 海星」时，海星不打到面前也先把 2 分计入本轮分数（与收藏牌同属“摊在手里也算”的口径）。</li>' +
+      '<li><b>自动配对不含海星</b>：凑成对按钮只会打普通对/跨类型对；三人组必须手动点三张再确认（否则会自动吃掉海星、浪费效果）。</li>' +
+      '<li><b>龙虾</b>：不足 5 张时看现有张数；选剩的牌放回牌库后<b>重洗整库</b>（与官方“放回牌库顶”口径的差异见 tasks.md）。</li>' +
+      '<li><b>水母锁手</b>：被锁的一方下一回合自动摸 1 张并交棒，不出牌、不可宣告。</li>' +
+      '<li><b>关闭一扩时</b>：这 8 张完全不进牌库（58 张），规则层无需分支；当前对局开关在牌库右上角「扩」按钮，改动需重开一局。</li>' +
+      '</ul>' +
+      '<div class="cp-oneline">当前预览：' + (st.exp ? '开一扩（66 张）' : '仅基础（58 张）') + '。牌堆洗牌顺序不影响本表（本表按 id 顺序，非牌库顺序）。</div>';
+  }
+
+  function renderAllPanels() {
+    const st = state();
+    const expN = st.exp ? 8 : 0;
+    $('cp-summary').innerHTML = '牌库 <b>' + (58 + expN) + '</b> 张 = 58 基础' +
+      (st.exp ? ' + 8 一扩' : '（一扩已隐藏）') + ' ｜ 牌种 <b>' + (st.exp ? 19 : 14) + '</b> 种';
+    renderColors(st);
+    renderTypes(st);
+    renderAll(st);
+    renderNote(st);
+  }
+
+  ['cp-exp', 'cp-color', 'cp-long'].forEach(function (id) {
+    $(id).addEventListener('change', renderAllPanels);
+  });
+  renderAllPanels();
+})();
+</script>
+</body>
+</html>

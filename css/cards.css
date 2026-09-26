@@ -1,0 +1,209 @@
+/* cards.css — 卡牌样式与动画 */
+.card {
+  position: relative;
+  background: linear-gradient(160deg, #fffdf6 0%, #f7ecd4 100%);
+  border: 1px solid #c9b384;
+  border-radius: 9px;
+  box-shadow: 0 2px 5px rgba(90, 70, 40, 0.22);
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.card svg.card-art { width: 78%; height: 62%; margin: 14% auto 0; display: block; }
+.card svg { display: block; }
+
+/* 尺寸（宽×高按扑克比例 5:7）
+   具体数值由 style.css :root 的 --hand-w 等变量驱动：视口越小牌越小，
+   手机上三区 + 牌库能一屏放下。改牌档只改那些变量，本文件不写死 px。 */
+.card.size-hand { width: var(--hand-w); height: calc(var(--hand-w) * 1.4); }
+.card.size-table { width: var(--table-w); height: calc(var(--table-w) * 1.4); }
+.card.size-pile { width: var(--pile-w); height: calc(var(--pile-w) * 1.4); }
+.card.size-mini { width: var(--mini-w); height: calc(var(--mini-w) * 1.4); }
+.card.size-ov { width: var(--ov-w); height: calc(var(--ov-w) * 1.4); }
+
+.card-name {
+  position: absolute;
+  bottom: 4px;
+  left: 5px; right: 5px;
+  text-align: center;
+  font-size: var(--card-name-fs);
+  font-weight: 600;
+  color: #3a2f1c;
+  line-height: 1;
+  padding: 2px 0;
+  background: rgba(255, 253, 246, 0.85);
+  border-radius: 6px;
+}
+.card.size-table .card-name, .card.size-mini .card-name { font-size: var(--card-small-name-fs); bottom: 3px; padding: 1px 0; left: 3px; right: 3px; }
+
+.card-count {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: calc(var(--ci) * 0.62);
+  color: #4a3f2c;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+}
+.card.size-table .card-count, .card.size-mini .card-count { display: none; }
+
+/* 左上角一排：颜色识别图标 +（一扩牌）「扩」角标 */
+.card-corner {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none; /* 角标不拦点击，点它等于点这张牌 */
+}
+.color-icon {
+  width: var(--ci);
+  height: var(--ci);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .3), 0 1px 1px rgba(0, 0, 0, .18);
+}
+/* 图形占色块的 72%，色块多大都自动跟着缩 */
+.color-icon svg { width: 72%; height: 72%; display: block; }
+.card.size-pile .color-icon, .card.size-ov .color-icon { width: calc(var(--ci) * 1.2); height: calc(var(--ci) * 1.2); }
+.card.size-table .color-icon { width: calc(var(--ci) * 0.74); height: calc(var(--ci) * 0.74); border-radius: 3px; }
+.card.size-mini .color-icon { width: calc(var(--ci) * 0.62); height: calc(var(--ci) * 0.62); border-radius: 2.5px; }
+/* 弹层 / 牌表页里独立使用（不在 .card-corner 里）时跟文字对齐 */
+.color-icon.ci-inline { margin-right: 4px; vertical-align: -2px; }
+
+/* 一扩牌角标（在 .card-corner 内排于颜色图标右边） */
+.card.is-exp { border-color: #d07a4a; box-shadow: 0 2px 5px rgba(90, 70, 40, 0.22), inset 0 0 0 1px rgba(208, 122, 74, 0.35); }
+.card .exp-corner {
+  font-size: calc(var(--ci) * 0.62);
+  font-weight: bold;
+  line-height: 1;
+  color: #a44a1e;
+  background: rgba(253, 238, 230, 0.92);
+  border: 1px solid #d07a4a;
+  border-radius: 6px;
+  padding: 2px 3px;
+}
+.card.size-table .exp-corner, .card.size-mini .exp-corner {
+  font-size: 0;
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* 卡背 */
+.card.back {
+  background: #2c5a8c;
+  border-color: #1e4066;
+}
+.card.back svg { width: 100%; height: 100%; border-radius: 8px; }
+
+/* 空堆槽：尺寸必须跟 .card.size-pile 完全一致（共用 --pile-w），
+   否则有牌时牌会溢出槽位（牌角标 pile-n 错位、牌名压住下方标签） */
+.pile {
+  width: var(--pile-w);
+  height: calc(var(--pile-w) * 1.4);
+  position: relative;
+}
+.pile .empty-slot {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #c9b384;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9b384;
+  font-size: 13px;
+}
+.pile-n {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: #b3541e;
+  color: #fff;
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* 可点击状态 */
+.card.clickable { cursor: pointer; transition: transform .1s, box-shadow .1s; }
+.card.clickable:hover { transform: translateY(-4px); box-shadow: 0 6px 14px rgba(90, 60, 20, 0.35); }
+.card.takeable { outline: 2px solid #e8912d; outline-offset: 1px; }
+
+/* 成对高亮 */
+.card.in-pair {
+  outline: 2px solid #3f7d4e;
+  outline-offset: 1px;
+  animation: pairPulse 1.2s ease-in-out infinite;
+}
+
+/* 点选中的手牌 */
+.card.selected {
+  outline: 3px solid #b3541e;
+  outline-offset: 2px;
+  transform: translateY(-8px);
+  animation: none;
+  box-shadow: 0 8px 16px rgba(120, 70, 20, 0.4);
+}
+@keyframes pairPulse {
+  0%, 100% { box-shadow: 0 2px 5px rgba(90,70,40,.22), 0 0 0 0 rgba(63,125,78,.35); }
+  50% { box-shadow: 0 2px 5px rgba(90,70,40,.22), 0 0 10px 3px rgba(63,125,78,.45); }
+}
+
+/* 入场动画：仅新出现的牌播一次（JS 用 seenCardIds 去重），避免 AI 回合全量重绘时整桌闪烁 */
+.card.card-new { animation: cardIn .25s ease-out; }
+@keyframes cardIn {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card.card-new { animation: none; }
+}
+
+/* 飞牌影子：牌进入手牌时从来源飞到手牌位（JS 动态插入到 body） */
+.card-fly-ghost {
+  position: fixed;
+  left: 0; top: 0;
+  z-index: 200;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: transform .42s cubic-bezier(.2, .7, .3, 1);
+  will-change: transform;
+}
+.card-fly-ghost .card { box-shadow: 0 10px 22px rgba(0, 0, 0, 0.42); }
+@media (prefers-reduced-motion: reduce) {
+  .card-fly-ghost { display: none; }
+}
+
+/* ---------- 窄屏微调 ----------
+   牌本身的尺寸已由 :root 的 --hand-w 等变量随视口缩放（宽、高哪个紧就按哪个），
+   这里只调角标位置与字号等细节，不再写死牌档 px */
+@media (max-width: 640px) {
+  .card-name { bottom: 3px; left: 3px; right: 3px; padding: 1px 0; }
+  .card-count { top: 3px; right: 3px; }
+  .card-corner { top: 3px; left: 3px; gap: 2px; }
+  .pile-n { font-size: 10px; min-width: 16px; height: 16px; top: -6px; right: -6px; }
+  .pile .empty-slot { font-size: 11px; }
+}
+
+/* ---------- 触屏：没有 hover，改用常驻描边 + 按压反馈 ---------- */
+@media (hover: none), (pointer: coarse) {
+  /* “这张牌可以点”以前只有 hover 一种提示，触屏上看不见 → 给一条常驻虚线框 */
+  .card.clickable:not(.takeable):not(.selected):not(.in-pair) {
+    outline: 2px dashed rgba(232, 145, 45, .85);
+    outline-offset: 2px;
+  }
+  /* 触屏上 :hover 会“粘住”不消 → 关掉，改用 :active */
+  .card.clickable:hover { transform: none; box-shadow: 0 2px 5px rgba(90, 60, 20, 0.22); }
+  .card.clickable:active { transform: translateY(-2px) scale(.98); }
+}
