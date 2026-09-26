@@ -751,16 +751,16 @@
         const top = pile.length ? pile[pile.length - 1] : null;
         ref += '<div class="dc-col ref">' +
           '<div class="dc-label">弃牌堆 ' + (i + 1) + '（' + pile.length + ' 张）</div>' +
-          '<div class="dc-top">' + (top ? cardHTML(top, 'mini') : '<div class="dc-empty">空</div>') + '</div>' +
+          '<div class="dc-top">' + (top ? cardHTML(top, 'table') : '<div class="dc-empty">空</div>') + '</div>' +
           '</div>';
       }
+      // 抽二弃一流程（保留/弃置）不提供悔棋：一旦开始选牌，回退到“未抽”状态无意义且易乱
       html = '<h3>抽到 2 张，点选保留 1 张</h3><div class="row">' +
         S.pendingDraw.map(function (c) {
           return '<div class="ov-card" data-action="keepCard" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
         }).join('') + '</div>' +
         '<p class="hint">参考：两个弃牌堆当前的顶牌（下一步弃牌会用到）</p>' +
-        '<div class="discard-choices">' + ref + '</div>' +
-        '<div class="row">' + undoBtnHTML() + '</div>';
+        '<div class="discard-choices">' + ref + '</div>';
     } else if (S.phase === 'discard' && S.current === 0) {
       const t = R.discardTargets(S);
       let cols = '';
@@ -768,19 +768,19 @@
         const pile = S.discards[i];
         const top = pile.length ? pile[pile.length - 1] : null;
         const dis = !t[i];
-        const topHtml = top ? cardHTML(top, 'mini') : '<div class="dc-empty">空</div>';
+        const topHtml = top ? cardHTML(top, 'ov') : '<div class="dc-empty">空</div>';
         cols += '<div class="dc-col' + (dis ? ' disabled' : '') + '">' +
           '<div class="dc-label">弃牌堆 ' + (i + 1) + '（' + pile.length + ' 张）</div>' +
           '<div class="dc-top">' + topHtml + '</div>' +
-          '<button class="btn' + (dis ? ' disabled' : '') + '" data-action="discardTo" data-pile="' + i + '"' + (dis ? ' disabled' : '') + '>弃到这里</button>' +
+          '<button class="btn mini' + (dis ? ' disabled' : '') + '" data-action="discardTo" data-pile="' + i + '"' + (dis ? ' disabled' : '') + '>弃到这里</button>' +
           '</div>';
       }
+      // 同保留阶段：抽二弃一流程不给悔棋
       html = '<h3>弃置这张牌：选弃牌堆</h3>' +
         '<p class="hint">这张牌将放到所选堆的顶部（对手可见）</p>' +
         '<div class="row">' + cardHTML(S.pendingKeep, 'ov') + '</div>' +
         '<div class="discard-choices">' + cols + '</div>' +
-        (t[0] !== t[1] ? '<p class="hint">空堆必须优先弃入</p>' : '') +
-        '<div class="row">' + undoBtnHTML() + '</div>';
+        (t[0] !== t[1] ? '<p class="hint">空堆必须优先弃入</p>' : '');
     } else if (S.phase === 'crabPick' && S.current === 0) {
       html = '<h3>螃蟹效果：翻看弃牌堆，选 1 张（对手看不到）</h3>' +
         [0, 1].map(function (i) {

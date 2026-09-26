@@ -154,9 +154,9 @@ body {
 
 .btn {
   font-family: inherit;
-  font-size: 13px;
-  padding: 6px 14px;
-  border-radius: 18px;
+  font-size: 12.5px;
+  padding: 5px 12px;
+  border-radius: 16px;
   border: 1px solid #b98d4f;
   background: linear-gradient(180deg, #fdf3dd, #f3e2bd);
   color: #5d4b2c;
