@@ -7,3 +7,7 @@ verify-*.png
 # 自测页（开发用，依赖 tests.js，不随游戏发布）
 tests.html
 tests.js
+
+# 临时诊断产物（复现脚本/截图）
+tmp-*
+repro-*.png
