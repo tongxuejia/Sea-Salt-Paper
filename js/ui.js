@@ -332,7 +332,7 @@
         ? '自动配对<span class="bt-long">（一次打出全部 ' + pairs.length + ' 对）</span><span class="bt-short"> ×' + pairs.length + '</span>'
         : '自动配对';
       if (!pairs.length) auto.classList.add('disabled');
-      auto.title = trios.length ? '自动配对不会用海星组三人组（有 ' + trios.length + ' 组可点选手动打出）' : '一键打出手里全部成对';
+      auto.title = trios.length ? '自动配对只打此刻手里的对子，不会用海星组三人组（有 ' + trios.length + ' 组可点选手动打出）' : '一键打出手里全部成对（效果新抽入的牌不自动打）';
       duoBar.appendChild(auto);
       const skip = document.createElement('button');
       skip.className = 'btn ghost';
@@ -534,39 +534,54 @@
     global.SPGame.playPair(ids);
   }
 
-  // 一键打出当前所有可打的对子（与手选一致，不对螃蟹做“值不值”取舍：
-  // 弃牌堆非空则弹选牌入手，全空则正常“效果落空”，保证点下去一定有动作）
+  // 一键打出成对：只打「按下按钮这一刻手里已有的对子」（快照），不做螃蟹“值不值”的取舍。
+  // 为什么先固定快照：鱼对抽牌、螃蟹拿牌会把新牌塞进手牌，如果每轮重新枚举，
+  // 刚抽到的螃蟹会和手里的螃蟹被自动打出去，夺走玩家“打不打螃蟹”的选择权。
+  // 快照存在模块级：被 crabPick 覆盖层打断后，续跑要拿同一份快照接着打，不能重新枚举
+  let snapshotPairs = [];
   function autoSuggestPairs() {
-    const G = global.SPGame, S = G.state;
+    const S = global.SPGame.state;
     if (!S || S.current !== 0 || S.phase !== 'duo') return;
     clearSelection();
+    // duoPairsInHand 内部已保证各对子的牌 id 互不重叠
+    snapshotPairs = R.duoPairsInHand(S.players[0].hand);
+    if (!snapshotPairs.length) { global.SPGame.skipDuos(); return; }
     pendingAutoSuggest = true;
-    let guard = 0;
-    while (S.phase === 'duo' && S.current === 0 && guard++ < 13) {
-      const pairs = R.duoPairsInHand(S.players[0].hand);
-      if (!pairs.length) { pendingAutoSuggest = false; G.skipDuos(); break; }
-      const chosen = pairs[0];
-      // 螃蟹对：playPair 会切入 crabPick 覆盖层（phase 离开 duo），选牌后由 scheduleAutoResume 续跑
-      G.playPair(chosen.ids);
-      if (S.phase === 'crabPick') {
-        scheduleAutoResume(S);
-        return; // 保留标记，由调度器在真正回到 duo 时消费
-      }
-    }
-    pendingAutoSuggest = false; // 正常跑完或循环保护触发
+    const deferred = playSnapshotPairs(S);
+    if (!deferred) pendingAutoSuggest = false; // 全部打完（或快照失效跳过）；被覆盖层打断则由续跑链末尾清理
   }
 
-  // 一次性调度续跑：若此刻仍在 crabPick（或异常中断），稍后重试；回到 duo 才真正执行
+  // 把快照里的对子依次打出；遇螃蟹覆盖层则交回调度器等选完后从断点续跑。
+  // 返回 true 表示被覆盖层打断、已调度续跑；false 表示正常跑完。
+  function playSnapshotPairs(S) {
+    const G = global.SPGame;
+    for (const pair of snapshotPairs) {
+      if (S.phase !== 'duo' || S.current !== 0) break;
+      // 只打快照里仍在手里的牌（防悔棋等异常路径让快照 id 失效后误打）
+      const owned = S.players[0].hand.filter(function (c) { return pair.ids.indexOf(c.id) !== -1; });
+      if (owned.length !== pair.ids.length) continue;
+      G.playPair(pair.ids);
+      if (S.phase === 'crabPick') {
+        scheduleAutoResume(S);
+        return true; // 保留 pendingAutoSuggest，由调度器在真正回到 duo 时续跑
+      }
+    }
+    return false;
+  }
+
+  // 一次性调度续跑：若此刻仍在 crabPick（或异常中断），稍后重试；回到 duo 才接着打快照里剩下的对子
   let autoResumeTimer = null;
   function scheduleAutoResume(S) {
     if (autoResumeTimer) return;
     autoResumeTimer = setTimeout(function () {
+      // 先清 handle 再续跑：快照里若还有一对螃蟹，playSnapshotPairs 会再次 scheduleAutoResume，
+      // 不置 null 会被「已有定时器」的防重入挡掉，续跑链断在半路
       autoResumeTimer = null;
       const st = global.SPGame.state;
       if (!pendingAutoSuggest || !st) return;
       if (st.current === 0 && st.phase === 'duo') {
-        pendingAutoSuggest = false;
-        autoSuggestPairs();
+        const deferredAgain = playSnapshotPairs(st);
+        if (!deferredAgain) pendingAutoSuggest = false; // 续跑链到头；又遇螃蟹则等下一次调度到点
       } else if (st.phase === 'crabPick' && st.current === 0) {
         scheduleAutoResume(st); // 玩家还没选完，继续等
       } else {
@@ -1029,6 +1044,7 @@
 
   global.SPUI = {
     render: render, cardEl: cardEl, clearSelection: clearSelection,
+    autoSuggestPairs: autoSuggestPairs, // 供 tests.js 验证「快照式自动配对」不吞刚抽到的牌
     cardHTML: cardHTML, cardTitle: cardTitle,
     ART: ART, EFFECT_TEXT: EFFECT_TEXT, EFFECT_LONG: EFFECT_LONG, KIND_LABEL: KIND_LABEL,
     COLOR_ICON: COLOR_ICON, colorIconHTML: colorIconHTML,
