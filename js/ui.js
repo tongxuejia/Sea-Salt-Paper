@@ -264,12 +264,11 @@
     showPanel(cardInfoHTML(c));
   }
 
-  // 两步拿牌：点可拿牌堆顶牌后，就地浮出「功能简介 + 拿取」气泡（点牌=预览、点拿取=拿、再点牌=取消）
-  function takePopoverHTML(kind, card, pileIdx) {
-    const text = kind === 'deck' ? '牌库：抽 2 张，留 1 弃 1' : cardTitle(card).replace('\n', '：');
-    const data = kind === 'deck' ? 'data-kind="deck"' : ('data-kind="discard" data-pile="' + pileIdx + '"');
+  // 两步拿牌（仅用于弃牌堆顶：拿的是那张具体的牌）：点牌后就地浮出「功能简介 + 拿取」，再点牌=取消
+  function takePopoverHTML(card, pileIdx) {
+    const text = cardTitle(card).replace('\n', '：');
     return '<div class="take-popover"><div class="tp-text">' + text + '</div>' +
-      '<button class="btn primary mini" data-action="confirmTake" ' + data + '>拿取</button></div>';
+      '<button class="btn primary mini" data-action="confirmTake" data-kind="discard" data-pile="' + pileIdx + '">拿取</button></div>';
   }
 
   // ---------- 渲染 ----------
@@ -277,8 +276,10 @@
 
   // 成对阶段的点选状态（仅 UI 层：选中两张合法成对并经「确认打出」后才提交动作）
   let selection = [];
-  // 两步拿牌：当前预览中的可拿牌堆（{ kind:'deck' } 或 { kind:'discard', pile }），null 表示无
+  // 两步拿牌：当前预览中的可拿弃牌堆（{ pile }），null 表示无
   let takePreview = null;
+  // 抽牌后「选留 1 张」弹层：当前预览中的候选牌 id，null 表示无
+  let keepPreviewId = null;
   // 「自动配对」被螃蟹覆盖层打断后的续跑标记
   let pendingAutoSuggest = false;
 
@@ -289,6 +290,7 @@
     if (!global.SPGame.undo()) return;
     selection = [];
     takePreview = null;
+    keepPreviewId = null;
     pendingAutoSuggest = false;
     if (autoResumeTimer) { clearTimeout(autoResumeTimer); autoResumeTimer = null; }
   }
@@ -322,6 +324,8 @@
         if (!p || !p.length) takePreview = null;
       }
     }
+    // 选牌弹层预览态：不在 keep 阶段就清除
+    if (keepPreviewId != null && !(S.current === 0 && S.phase === 'keep')) keepPreviewId = null;
     // 悔棋圆钮的可用态
     const undoBtn = $('undo-btn');
     if (undoBtn) {
@@ -351,12 +355,8 @@
     const legal = R.legalDraw(S);
     if (legal.canDeck && S.current === 0 && S.phase === 'draw') {
       const btn = cardEl(null, 'pile', false, 'clickable');
-      btn.dataset.action = 'previewTake';
-      btn.dataset.kind = 'deck';
-      const previewing = takePreview && takePreview.kind === 'deck';
-      if (previewing) btn.classList.add('selected');
+      btn.dataset.action = 'drawFromDeck';
       deckEl.appendChild(btn);
-      if (previewing) deckEl.insertAdjacentHTML('beforeend', takePopoverHTML('deck', null, null));
     } else {
       deckEl.appendChild(cardEl(null, 'pile', false));
     }
@@ -375,7 +375,7 @@
         const n = document.createElement('div');
         n.className = 'pile-n'; n.textContent = pile.length > 1 ? pile.length : '';
         el.appendChild(n);
-        if (previewing) el.insertAdjacentHTML('beforeend', takePopoverHTML('discard', top, i));
+        if (previewing) el.insertAdjacentHTML('beforeend', takePopoverHTML(top, i));
       } else {
         const e = document.createElement('div');
         e.className = 'pile empty-slot' + (canTake ? '' : '');
@@ -699,10 +699,18 @@
           '</div>';
       }
       // 抽二弃一流程（保留/弃置）不提供悔棋：一旦开始选牌，回退到“未抽”状态无意义且易乱
+      // 两步选牌：点候选牌→就地高亮并浮出「功能简介 + 拿取」（拿取=保留这张），再点同一张取消
+      const previewCard = keepPreviewId != null
+        ? S.pendingDraw.filter(function (c) { return c.id === keepPreviewId; })[0] : null;
+      const confirmBar = previewCard
+        ? '<div class="keep-confirm"><div class="kc-text">' + cardTitle(previewCard).replace('\n', '：') + '</div>' +
+          '<button class="btn primary mini" data-action="confirmKeep" data-card-id="' + previewCard.id + '">拿取</button></div>'
+        : '';
       html = '<h3>抽到 2 张，点选保留 1 张</h3><div class="row">' +
         S.pendingDraw.map(function (c) {
-          return '<div class="ov-card" data-action="keepCard" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
-        }).join('') + '</div>' +
+          const selCls = keepPreviewId === c.id ? ' selected' : '';
+          return '<div class="ov-card' + selCls + '" data-action="previewKeep" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
+        }).join('') + '</div>' + confirmBar +
         '<p class="hint">参考：两个弃牌堆当前的顶牌（下一步弃牌会用到）</p>' +
         '<div class="discard-choices">' + ref + '</div>';
     } else if (S.phase === 'discard' && S.current === 0) {
@@ -1033,11 +1041,22 @@
           else G.takeDiscard(+el.dataset.pile);
           break;
         }
+        case 'drawFromDeck': G.drawFromDeck(); break;
+        case 'previewKeep': {
+          const id = +el.dataset.cardId;
+          keepPreviewId = keepPreviewId === id ? null : id; // 再点同一张 = 取消预览
+          G && render(G.state);
+          break;
+        }
+        case 'confirmKeep': {
+          keepPreviewId = null;
+          G.keepCard(+el.dataset.cardId);
+          break;
+        }
         case 'selectHandCard': selectHandCard(+el.dataset.cardId); break;
         case 'confirmPair': confirmPair(); break;
         case 'clearSel': clearSelection(); G && render(G.state); break;
         case 'autoSuggestPairs': autoSuggestPairs(); break;
-        case 'keepCard': G.keepCard(+el.dataset.cardId); break;
         case 'discardTo': G.discardTo(+el.dataset.pile); break;
         case 'playPair': G.playPair(el.dataset.ids.split(',').map(Number)); break;
         case 'crabPick': G.crabPick(+el.dataset.pile, +el.dataset.cardId); break;
