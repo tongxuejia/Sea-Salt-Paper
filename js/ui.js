@@ -375,22 +375,12 @@
       selection = [];
     }
     if (!S) return;
-    // 悔棋 / 说明模式 / 一扩开关 三个圆钮的可用态
+    // 悔棋圆钮的可用态
     const undoBtn = $('undo-btn');
     if (undoBtn) {
       const canUndo = global.SPGame.canUndo();
       undoBtn.disabled = !canUndo;
       undoBtn.title = canUndo ? '悔棋：撤回本回合的上一步操作' : '悔棋：只能撤销本回合内的操作';
-    }
-    const infoBtn = $('info-btn');
-    if (infoBtn) {
-      infoBtn.classList.toggle('on', infoMode);
-      infoBtn.title = infoMode ? '说明模式：已开启（点任意牌只看说明）' : '说明模式：开启后点任意牌只看效果说明';
-    }
-    const expBtn = $('exp-btn');
-    if (expBtn) {
-      expBtn.classList.toggle('on', !!S.useExp);
-      expBtn.title = S.useExp ? '一扩 Extra Salt：已入牌库（66 张）' : '一扩 Extra Salt：未启用（58 张）';
     }
     const my = S.players[0], ai = S.players[1];
     const myScore = R.scoreHand(my);
@@ -1099,8 +1089,6 @@
         case 'pickSkinLego': setSkin('lego'); break;
         case 'startBasic': startFromMenu(false); break;
         case 'startExp': startFromMenu(true); break;
-        case 'toggleInfo': infoMode = !infoMode; G && render(G.state); break;
-        case 'toggleExp': showExpConfirm(); break;
         case 'undo': doUndo(); break;
       }
     });
@@ -1109,23 +1097,12 @@
       if (ev.target.closest('[data-action]')) return;
       global.SPGame.speedUp();
     });
-    // 牌库区右上角的↶/ℹ/!/？/扩已改用 data-action，走上面的统一派发；
+    // 牌库区的 ↶（悔棋）与右侧竖排的 !（规则书）/ ?（速查）走 data-action 统一派发；
     // 带上 data-action 也顺带避开“点桌面加速 AI”的默认行为。
     // ESC 关闭当前弹层
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape') { const ov = $('overlay'); if (ov && !ov.classList.contains('hidden')) hidePanel(); }
     });
-  }
-  
-  // 一扩开关的确认弹层（重开会丢当前这局，所以多一步确认）
-  function showExpConfirm() {
-    const S = global.SPGame.state;
-    const next = !(S && S.useExp);
-    showPanel('<h3>一扩 Extra Salt：' + (next ? '开启' : '关闭') + '</h3>' +
-      '<p class="hint">只影响牌库：' + (next ? '66 张 = 58 张基础牌 + 8 张一扩牌' : '58 张（纯基础牌）') + '。需要重开一局，当前这局（第 ' + (S ? S.round : 1) + ' 轮）会被丢弃。</p>' +
-      '<div class="row">' +
-      '<button class="btn primary" data-action="' + (next ? 'newGameWithExp' : 'newGameNoExp') + '">确认并重开</button>' +
-      '<button class="btn ghost" data-action="closeOverlay">取消</button></div>', true);
   }
   
   // 规则书/速查底部的“一扩”章节（带本局是否启用）
@@ -1140,7 +1117,7 @@
       '<tr><td>海马 ×1</td><td>代替 1 张你已持有的收藏牌（贝壳/章鱼/企鹅/水手），不超过该牌最高分</td></tr>' +
       '<tr><td>螃蟹篮 ×1</td><td>倍增牌：每张螃蟹 +1 分（本牌自身不算螃蟹）</td></tr>' +
       '</table>' +
-      '<p class="help-p">一扩牌面左上角在颜色图标旁边多一个「扩」角标；逐张颜色已按官方牌表校正，可在<a href="cards.html">牌表页</a>逐张校看。点牌库右上角的 ℹ 开启说明模式，点任意牌只看说明。</p></div>';
+      '<p class="help-p">一扩牌面左上角在颜色图标旁边多一个「扩」角标；逐张颜色已按官方牌表校正，可在<a href="cards.html">牌表页</a>逐张校看。一扩的开关在开局前的开始页选择。</p></div>';
   }
 
   // hideClose：弹层自带语义化按钮（如“确认并重开 / 取消”）时不再追加通用“关闭”

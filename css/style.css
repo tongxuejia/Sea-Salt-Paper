@@ -366,15 +366,22 @@ body {
   margin-top: 4px;
 }
 
-/* ---------- 牌库区右上角：悔棋 / 说明模式 / 规则书 / 规则速查 / 一扩 ---------- */
+/* ---------- 牌库区按钮：↶悔棋留在牌堆上方；! 规则书 / ? 速查 竖排在牌堆右侧 ---------- */
 .piles-block {
   display: flex;
+  flex-direction: row;
+  align-items: center; /* 右侧竖排按钮与牌堆组垂直居中对齐 */
+  gap: 10px;
+}
+.piles-main {
+  display: flex;
   flex-direction: column;
-  align-items: flex-end; /* 按钮行与牌堆组右边缘对齐 */
+  align-items: flex-end; /* 悔棋钮与牌堆组右边缘对齐 */
   gap: 6px;
 }
 #corner-btns { display: flex; gap: 8px; }
-#help-btn, #rules-btn, #undo-btn, #info-btn, #exp-btn {
+#side-btns { display: flex; flex-direction: column; gap: 8px; }
+#help-btn, #rules-btn, #undo-btn {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -391,27 +398,6 @@ body {
   border-color: #5a9bd0;
   color: #1a5c8a;
 }
-#info-btn {
-  background: #f3eefb;
-  border-color: #8a6ab0;
-  color: #5a3d80;
-  font-style: italic;
-}
-#exp-btn {
-  background: #fdeee6;
-  border-color: #d07a4a;
-  color: #a44a1e;
-  font-size: 12px; /* 「扩」是汉字，30px 圆里得缩字号才不贴边 */
-}
-/*  toggle 类按钮（说明模式 / 一扩）的激活态：填充反色，一眼看出开着 */
-#corner-btns button.on {
-  background: #6b5433;
-  border-color: #4a3a20;
-  color: #fdf3dd;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35);
-}
-#info-btn.on { background: #5a3d80; border-color: #3d2759; color: #f3eefb; }
-#exp-btn.on { background: #a44a1e; border-color: #7a3413; color: #fdeee6; }
 #undo-btn {
   background: #eef6ee;
   border-color: #6aa06a;

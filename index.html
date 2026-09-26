@@ -25,26 +25,28 @@
   <section id="center-zone">
     <div id="phase-bar"></div>
     <div class="piles-block">
-      <div id="corner-btns">
-        <button id="undo-btn" data-action="undo" title="悔棋：只能撤销本回合内的操作">↶</button>
-        <button id="info-btn" data-action="toggleInfo" title="说明模式：开启后点任意牌只看效果说明">i</button>
+      <div class="piles-main">
+        <div id="corner-btns">
+          <button id="undo-btn" data-action="undo" title="悔棋：只能撤销本回合内的操作">↶</button>
+        </div>
+        <div class="piles">
+          <div class="pile-wrap">
+            <div id="deck" class="pile"></div>
+            <div class="pile-label">牌库 <span id="deck-count"></span></div>
+          </div>
+          <div class="pile-wrap">
+            <div id="discard-0" class="pile"></div>
+            <div class="pile-label">弃牌堆 1</div>
+          </div>
+          <div class="pile-wrap">
+            <div id="discard-1" class="pile"></div>
+            <div class="pile-label">弃牌堆 2</div>
+          </div>
+        </div>
+      </div>
+      <div id="side-btns">
         <button id="rules-btn" data-action="rulebook" title="规则书">!</button>
         <button id="help-btn" data-action="help" title="规则速查">?</button>
-        <button id="exp-btn" data-action="toggleExp" title="一扩 Extra Salt：开关需重开一局">扩</button>
-      </div>
-      <div class="piles">
-        <div class="pile-wrap">
-          <div id="deck" class="pile"></div>
-          <div class="pile-label">牌库 <span id="deck-count"></span></div>
-        </div>
-        <div class="pile-wrap">
-          <div id="discard-0" class="pile"></div>
-          <div class="pile-label">弃牌堆 1</div>
-        </div>
-        <div class="pile-wrap">
-          <div id="discard-1" class="pile"></div>
-          <div class="pile-label">弃牌堆 2</div>
-        </div>
       </div>
     </div>
     <div id="log"></div>
