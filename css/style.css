@@ -98,8 +98,8 @@ body {
 #log {
   width: min(760px, 96%);
   flex: 1 1 auto;
-  min-height: 56px;
-  max-height: 200px; /* 中央区放大：多留几行历史 */
+  min-height: 24px;
+  max-height: 134px; /* 只显示最近 6 条（ui.js 已 slice(-6)）：约 6 行 20px + 上下内边距 */
   overflow-y: auto;
   font-size: 12.5px;
   color: #7a6a4d;
@@ -136,6 +136,8 @@ body {
 #ai-hand { min-height: calc(var(--mini-w) * 1.4 + 8px); }
 /* 空行塌掉（#ai-hand:empty 特异性高于 #ai-hand，否则盖不住） */
 .hand-row:empty, .table-row:empty, #ai-hand:empty { min-height: 0; padding: 0; }
+/* 例外：玩家区的手牌行为开局保留一行占位高（开局 AI 先手、你还不手里没牌时），不至于整个玩家区塌得太窄；牌上手后自然被内容撑高 */
+#player-zone .hand-row:empty { min-height: calc(var(--hand-w) * 1.4 + 8px); padding: 4px 2px; }
 
 /* ---------- 按钮条 ---------- */
 #call-bar, #duo-bar {

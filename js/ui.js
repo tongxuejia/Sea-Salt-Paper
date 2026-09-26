@@ -411,7 +411,7 @@
     // 日志与气泡
     const logEl = $('log');
     logEl.innerHTML = '';
-    for (const e of S.log.slice(-20)) {
+    for (const e of S.log.slice(-6)) {
       const d = document.createElement('div');
       d.className = 'log-line ' + e.side;
       d.textContent = (e.side === 'you' ? '你：' : e.side === 'ai' ? 'AI：' : '') + e.text;
