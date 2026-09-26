@@ -264,11 +264,21 @@
     showPanel(cardInfoHTML(c));
   }
 
+  // 两步拿牌：点可拿牌堆顶牌后，就地浮出「功能简介 + 拿取」气泡（点牌=预览、点拿取=拿、再点牌=取消）
+  function takePopoverHTML(kind, card, pileIdx) {
+    const text = kind === 'deck' ? '牌库：抽 2 张，留 1 弃 1' : cardTitle(card).replace('\n', '：');
+    const data = kind === 'deck' ? 'data-kind="deck"' : ('data-kind="discard" data-pile="' + pileIdx + '"');
+    return '<div class="take-popover"><div class="tp-text">' + text + '</div>' +
+      '<button class="btn primary mini" data-action="confirmTake" ' + data + '>拿取</button></div>';
+  }
+
   // ---------- 渲染 ----------
   const $ = function (id) { return document.getElementById(id); };
 
   // 成对阶段的点选状态（仅 UI 层：选中两张合法成对并经「确认打出」后才提交动作）
   let selection = [];
+  // 两步拿牌：当前预览中的可拿牌堆（{ kind:'deck' } 或 { kind:'discard', pile }），null 表示无
+  let takePreview = null;
   // 「自动配对」被螃蟹覆盖层打断后的续跑标记
   let pendingAutoSuggest = false;
 
@@ -278,6 +288,7 @@
   function doUndo() {
     if (!global.SPGame.undo()) return;
     selection = [];
+    takePreview = null;
     pendingAutoSuggest = false;
     if (autoResumeTimer) { clearTimeout(autoResumeTimer); autoResumeTimer = null; }
   }
@@ -303,6 +314,14 @@
       selection = [];
     }
     if (!S) return;
+    // 拿牌预览态失效自动清除：不在人类摸牌阶段 / 目标弃牌堆已空
+    if (takePreview) {
+      if (!(S.current === 0 && S.phase === 'draw')) takePreview = null;
+      else if (takePreview.kind === 'discard') {
+        const p = S.discards[takePreview.pile];
+        if (!p || !p.length) takePreview = null;
+      }
+    }
     // 悔棋圆钮的可用态
     const undoBtn = $('undo-btn');
     if (undoBtn) {
@@ -332,8 +351,12 @@
     const legal = R.legalDraw(S);
     if (legal.canDeck && S.current === 0 && S.phase === 'draw') {
       const btn = cardEl(null, 'pile', false, 'clickable');
-      btn.dataset.action = 'drawFromDeck';
+      btn.dataset.action = 'previewTake';
+      btn.dataset.kind = 'deck';
+      const previewing = takePreview && takePreview.kind === 'deck';
+      if (previewing) btn.classList.add('selected');
       deckEl.appendChild(btn);
+      if (previewing) deckEl.insertAdjacentHTML('beforeend', takePopoverHTML('deck', null, null));
     } else {
       deckEl.appendChild(cardEl(null, 'pile', false));
     }
@@ -345,11 +368,14 @@
       if (pile.length) {
         const top = pile[pile.length - 1];
         const e = cardEl(top, 'pile', true, canTake ? 'clickable takeable' : '');
-        if (canTake) e.dataset.action = 'takeDiscard', e.dataset.pile = i;
+        if (canTake) { e.dataset.action = 'previewTake'; e.dataset.kind = 'discard'; e.dataset.pile = i; }
+        const previewing = canTake && takePreview && takePreview.kind === 'discard' && takePreview.pile === i;
+        if (previewing) e.classList.add('selected');
         el.appendChild(e);
         const n = document.createElement('div');
         n.className = 'pile-n'; n.textContent = pile.length > 1 ? pile.length : '';
         el.appendChild(n);
+        if (previewing) el.insertAdjacentHTML('beforeend', takePopoverHTML('discard', top, i));
       } else {
         const e = document.createElement('div');
         e.className = 'pile empty-slot' + (canTake ? '' : '');
@@ -992,12 +1018,25 @@
       if (a === 'rulebook') { showPanel(RULEBOOK_HTML + expNoteHTML()); return; }
       if (a === 'closeOverlay') { hidePanel(); return; }
       switch (a) {
-        case 'drawFromDeck': G.drawFromDeck(); break;
+        case 'previewTake': {
+          const kind = el.dataset.kind;
+          const pile = el.dataset.pile != null ? +el.dataset.pile : null;
+          const same = takePreview && takePreview.kind === kind && takePreview.pile === pile;
+          takePreview = same ? null : { kind: kind, pile: pile }; // 再点同一张 = 取消预览
+          G && render(G.state);
+          break;
+        }
+        case 'confirmTake': {
+          const kind = el.dataset.kind;
+          takePreview = null;
+          if (kind === 'deck') G.drawFromDeck();
+          else G.takeDiscard(+el.dataset.pile);
+          break;
+        }
         case 'selectHandCard': selectHandCard(+el.dataset.cardId); break;
         case 'confirmPair': confirmPair(); break;
         case 'clearSel': clearSelection(); G && render(G.state); break;
         case 'autoSuggestPairs': autoSuggestPairs(); break;
-        case 'takeDiscard': G.takeDiscard(+el.dataset.pile); break;
         case 'keepCard': G.keepCard(+el.dataset.cardId); break;
         case 'discardTo': G.discardTo(+el.dataset.pile); break;
         case 'playPair': G.playPair(el.dataset.ids.split(',').map(Number)); break;

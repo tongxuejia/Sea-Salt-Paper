@@ -155,6 +155,32 @@
   animation: none;
   box-shadow: 0 8px 16px rgba(120, 70, 20, 0.4);
 }
+
+/* 两步拿牌气泡：牌堆区在屏幕下方，浮层朝上弹出（不遮挡下方牌堆标签，也不溢出屏幕底） */
+.take-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 200px;
+  padding: 10px 12px;
+  background: #fffdf6;
+  border: 2px solid #b98d4f;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(90, 60, 20, 0.35);
+}
+.take-popover .tp-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #4a3a22;
+  text-align: center;
+}
 @keyframes pairPulse {
   0%, 100% { box-shadow: 0 2px 5px rgba(90,70,40,.22), 0 0 0 0 rgba(63,125,78,.35); }
   50% { box-shadow: 0 2px 5px rgba(90,70,40,.22), 0 0 10px 3px rgba(63,125,78,.45); }
