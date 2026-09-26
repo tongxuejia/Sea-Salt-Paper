@@ -77,114 +77,42 @@
     basket: '<polygon points="34,50 40,33 60,33 66,50" fill="#e0632f"/><polygon points="34,43 25,37 29,48" fill="#c94f22"/><polygon points="66,43 75,37 71,48" fill="#c94f22"/><circle cx="44" cy="41" r="2.3" fill="#2b2b2b"/><circle cx="56" cy="41" r="2.3" fill="#2b2b2b"/><polygon points="17,50 83,50 74,88 26,88" fill="#a9743f"/><polygon points="17,50 83,50 81,59 19,59" fill="#8a5a2b"/><polygon points="31,62 35,85 40,85 36,62" fill="#8a5a2b"/><polygon points="56,62 60,85 65,85 61,62" fill="#8a5a2b"/><polygon points="26,88 74,88 72,93 28,93" fill="#6f4620"/>',
   };
 
-  // ---------- 乐高风 SVG 卡面（19 种，与 ART 同键） ----------
-  // 视觉语言：所有积木块都是「矩形砖 + 顶上一颗凸点（stud）」，凸点圆心落在砖行线上；
-  // 叠砖时上一行的凸点被下一行砖体盖住，只暴露最外轮廓的凸点，和真积木拼接一致。
-  // 行带：r1=14-26 / r2=32-44 / r3=50-62 / r4=68-80 / r5=86-96，砖高 12，竖缝 2。
-  // 描边统一深灰半透明，色只用实色（乐高零件不打渐变）。
-  const LEGO_EDGE = 'stroke="#2b2b2b" stroke-opacity=".45" stroke-width="1.2"';
-  // 砖块：x/y/w/h 位置尺寸，fill 颜色；凸点在顶边居中（宽 ≥ 8 才画，细粢片不画）
-  function lb(x, y, w, h, fill) {
-    const studR = Math.min(3.2, w / 4);
-    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="1.5" fill="' + fill + '" ' + LEGO_EDGE + '/>' +
-      (w >= 8 ? '<circle cx="' + (x + w / 2) + '" cy="' + y + '" r="' + studR + '" fill="' + fill + '" ' + LEGO_EDGE + '/>' : '');
-  }
-  // 圆板（1×1 round）：系统里触手/眼白这类圆形零件
-  function lrd(cx, cy, r, fill) {
-    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + fill + '" ' + LEGO_EDGE + '/>';
-  }
-  // 斜面/异形件（尾鳍、钳尖这类特殊零件）：多边形同样带深缝线
-  function lp(points, fill) {
-    return '<polygon points="' + points + '" fill="' + fill + '" ' + LEGO_EDGE + '/>';
-  }
-  // 小凸点（眼睛、钮扣这类装饰点，不是独立零件）
-  function dot(cx, cy, r, fill) {
-    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + fill + '"/>';
-  }
-  const ART_LEGO = {
-    crab: lb(34, 50, 32, 12, '#e0632f') + lb(14, 32, 16, 12, '#e0632f') + lb(70, 32, 16, 12, '#e0632f') +
-      lb(22, 68, 10, 12, '#c94f22') + lb(40, 68, 8, 12, '#c94f22') + lb(52, 68, 8, 12, '#c94f22') + lb(68, 68, 10, 12, '#c94f22') +
-      lrd(42, 44, 4, '#f4f1e8') + lrd(58, 44, 4, '#f4f1e8') + dot(42, 44, 1.8, '#2b2b2b') + dot(58, 44, 1.8, '#2b2b2b'),
-    boat: lp('18,44 82,44 74,56 26,56', '#8a5a2b') + lb(48, 14, 4, 30, '#5b3a1a') +
-      lb(54, 14, 22, 12, '#fdf6e3') + lb(54, 32, 22, 12, '#fdf6e3') + lb(24, 32, 20, 12, '#eadbb5') +
-      lb(26, 68, 48, 12, '#a9743f') + lb(14, 86, 16, 10, '#7fb5d6') + lb(42, 86, 16, 10, '#7fb5d6') + lb(70, 86, 16, 10, '#7fb5d6'),
-    fish: lb(28, 50, 32, 12, '#4a90b8') + lp('60,50 74,44 74,68 60,62', '#3a78a0') +
-      lb(36, 32, 14, 12, '#3a78a0') + lp('20,50 28,56 20,62', '#3a78a0') + lrd(36, 56, 3.5, '#f4f1e8') + dot(36, 56, 1.7, '#123047'),
-    shark: lb(26, 50, 44, 12, '#6b7f94') + lp('70,50 88,54 70,62', '#eef2f5') +
-      lb(42, 32, 14, 12, '#5a6e82') + lp('10,50 26,50 22,62 8,66', '#5a6e82') +
-      lb(30, 68, 24, 12, '#eef2f5') + lrd(60, 54, 3.5, '#f4f1e8') + dot(60, 54, 1.7, '#123047'),
-    swimmer: lrd(50, 20, 6, '#e8b88a') + lb(40, 32, 20, 12, '#d94f3d') +
-      lb(20, 50, 16, 12, '#e8b88a') + lb(40, 50, 20, 12, '#e8b88a') + lb(64, 50, 16, 12, '#e8b88a') +
-      lb(14, 68, 16, 12, '#7fb5d6') + lb(42, 68, 16, 12, '#7fb5d6') + lb(70, 68, 16, 12, '#7fb5d6') +
-      lb(28, 86, 16, 10, '#5b9bd5') + lb(56, 86, 16, 10, '#5b9bd5'),
-    mermaid: lb(38, 14, 24, 12, '#7a4a2b') + lrd(50, 22, 7, '#f0c8a0') + lb(40, 32, 20, 12, '#3aa6a0') +
-      lb(40, 50, 20, 12, '#e8b88a') + lb(42, 68, 16, 12, '#3aa6a0') + lb(44, 86, 12, 10, '#2e8d88') +
-      lp('44,88 30,80 34,96', '#2e8d88') + lp('56,88 70,80 66,96', '#2e8d88'),
-    shell: lb(36, 14, 28, 12, '#e8a06a') + lb(28, 32, 44, 12, '#d4824f') + lb(22, 50, 56, 12, '#e8a06a') +
-      lb(22, 68, 8, 12, '#d4824f') + lb(70, 68, 8, 12, '#d4824f') + lb(36, 86, 28, 10, '#b06a3f'),
-    octopus: lb(38, 14, 24, 12, '#9a6ab8') + lb(30, 32, 40, 12, '#8c5aa8') +
-      lrd(26, 56, 5, '#7a4a94') + lrd(38, 56, 5, '#8c5aa8') + lrd(50, 56, 5, '#7a4a94') + lrd(62, 56, 5, '#8c5aa8') + lrd(74, 56, 5, '#7a4a94') +
-      lrd(30, 74, 5, '#8c5aa8') + lrd(44, 74, 5, '#7a4a94') + lrd(56, 74, 5, '#8c5aa8') + lrd(70, 74, 5, '#7a4a94') +
-      lrd(38, 92, 5, '#7a4a94') + lrd(50, 92, 5, '#8c5aa8') + lrd(62, 92, 5, '#7a4a94') +
-      lrd(42, 38, 4, '#fff') + lrd(58, 38, 4, '#fff') + dot(42, 38, 1.8, '#222') + dot(58, 38, 1.8, '#222'),
-    penguin: lb(38, 14, 24, 12, '#26292e') + lb(34, 32, 8, 12, '#1a1d21') + lb(42, 32, 16, 12, '#26292e') + lb(58, 32, 8, 12, '#1a1d21') +
-      lp('46,26 54,26 50,33', '#e8912d') + lb(46, 36, 8, 5, '#f4f1e8') +
-      lb(46, 50, 8, 12, '#f4f1e8') + lb(22, 50, 8, 12, '#26292e') + lb(70, 50, 8, 12, '#26292e') +
-      lb(38, 68, 24, 12, '#26292e') + lb(36, 86, 10, 10, '#e8912d') + lb(54, 86, 10, 10, '#e8912d') +
-      dot(44, 20, 1.8, '#fff') + dot(56, 20, 1.8, '#fff'),
-    sailor: lb(38, 14, 24, 12, '#f4f1e8') + dot(50, 19, 2.2, '#d4a017') + lb(32, 32, 36, 12, '#2c3e66') +
-      lb(40, 50, 20, 12, '#e8b88a') + lb(36, 68, 28, 12, '#f4f1e8') + lb(44, 86, 12, 10, '#2c5aa8') +
-      lb(24, 68, 8, 12, '#f4f1e8') + lb(68, 68, 8, 12, '#f4f1e8') + lb(24, 86, 8, 10, '#e8b88a') + lb(68, 86, 8, 10, '#e8b88a'),
-    lighthouse: lp('38,14 62,14 50,4', '#d94f3d') + lb(42, 14, 16, 12, '#f2c94c') + dot(50, 20, 3, '#fff') +
-      lb(42, 32, 16, 12, '#d94f3d') + lb(40, 50, 20, 12, '#f4f1e8') + lb(38, 68, 24, 12, '#d94f3d') +
-      lb(34, 86, 32, 10, '#9aa0a6') +
-      lp('42,20 18,12 18,28', '#f7e08a') + lp('58,20 82,12 82,28', '#f7e08a'),
-    shoal: lb(14, 14, 16, 12, '#4a90b8') + lp('30,14 38,20 30,26', '#3a78a0') + dot(19, 20, 1.6, '#123047') +
-      lb(44, 32, 16, 12, '#5b9bd5') + lp('60,32 68,38 60,44', '#47799e') + dot(49, 38, 1.6, '#123047') +
-      lb(24, 50, 16, 12, '#7fb5d6') + lp('40,50 48,56 40,62', '#5b93b8') + dot(29, 56, 1.6, '#123047') +
-      lb(54, 68, 16, 12, '#4a90b8') + lp('70,68 78,74 70,80', '#3a78a0') + dot(59, 74, 1.6, '#123047'),
-    colony: lb(14, 68, 72, 12, '#dfe9ee') + lb(26, 50, 10, 12, '#e8f2f6') + lb(64, 50, 10, 12, '#e8f2f6') +
-      lb(20, 32, 10, 12, '#26292e') + lb(44, 26, 12, 12, '#26292e') + lb(68, 32, 10, 12, '#26292e') +
-      lb(22, 50, 6, 12, '#f4f1e8') + lb(46, 38, 8, 12, '#f4f1e8') + lb(70, 50, 6, 12, '#f4f1e8') +
-      lp('23,26 27,26 25,32', '#e8912d') + lp('47,20 51,20 49,26', '#e8912d') + lp('71,26 75,26 73,32', '#e8912d'),
-    captain: lb(36, 14, 28, 12, '#22345c') + lb(30, 32, 40, 12, '#16233f') + lb(46, 27, 8, 4, '#d4a017') +
-      lb(40, 50, 20, 12, '#e8b88a') + lb(42, 45, 16, 4, '#e6e2d8') +
-      lb(34, 68, 32, 12, '#2c3e66') + lrd(44, 74, 1.8, '#d4a017') + lrd(50, 74, 1.8, '#d4a017') + lrd(56, 74, 1.8, '#d4a017') +
-      lb(24, 68, 8, 12, '#d4a017') + lb(68, 68, 8, 12, '#d4a017'),
-    jellyfish: lb(38, 14, 24, 12, '#b78fd0') + lb(30, 32, 40, 12, '#d7bce8') +
-      lrd(26, 56, 5, '#a97fc4') + lrd(38, 56, 5, '#b78fd0') + lrd(50, 56, 5, '#a97fc4') + lrd(62, 56, 5, '#b78fd0') + lrd(74, 56, 5, '#a97fc4') +
-      lrd(32, 74, 5, '#b78fd0') + lrd(44, 74, 5, '#a97fc4') + lrd(56, 74, 5, '#b78fd0') + lrd(68, 74, 5, '#a97fc4') +
-      lrd(50, 92, 5, '#b78fd0') + lrd(43, 38, 4, '#fff') + lrd(57, 38, 4, '#fff') + dot(43, 38, 1.7, '#3a2b4a') + dot(57, 38, 1.7, '#3a2b4a'),
-    lobster: lb(38, 32, 24, 12, '#e0632f') + lb(40, 50, 20, 12, '#c94f22') + lb(42, 68, 16, 12, '#e0632f') +
-      lp('44,80 56,80 50,96', '#b83a2a') +
-      lb(22, 50, 12, 12, '#d94f3d') + lb(66, 50, 12, 12, '#d94f3d') +
-      lb(8, 32, 12, 12, '#d94f3d') + lb(80, 32, 12, 12, '#d94f3d') +
-      lp('14,32 20,18 22,30', '#b83a2a') + lp('22,32 28,20 28,32', '#b83a2a') +
-      lp('86,32 80,18 78,30', '#b83a2a') + lp('78,32 72,20 72,32', '#b83a2a') +
-      lrd(44, 26, 4, '#f4f1e8') + lrd(56, 26, 4, '#f4f1e8') + dot(44, 26, 1.7, '#2b1a12') + dot(56, 26, 1.7, '#2b1a12') +
-      lb(36, 8, 4, 12, '#b83a2a') + lb(60, 8, 4, 12, '#b83a2a'),
-    starfish: lp('50,14 62,26 50,38 38,26', '#e9c449') +
-      lb(14, 32, 12, 12, '#d4a92f') + lb(74, 32, 12, 12, '#d4a92f') +
-      lb(38, 32, 24, 12, '#e9c449') + lb(26, 50, 12, 12, '#e9c449') + lb(62, 50, 12, 12, '#e9c449') +
-      lb(40, 68, 20, 12, '#d4a92f') + dot(50, 30, 3, '#f6e6a8'),
-    seahorse: lb(46, 14, 20, 12, '#e8a06a') + lp('66,16 78,20 66,26', '#d4824f') +
-      lb(38, 32, 20, 12, '#d4824f') + lb(58, 36, 10, 12, '#f0c07a') +
-      lb(34, 50, 18, 12, '#e8a06a') + lb(36, 68, 16, 12, '#d4824f') + lb(42, 86, 22, 10, '#c9703f') +
-      lrd(58, 20, 3.5, '#f4f1e8') + dot(58, 20, 1.6, '#3a2412'),
-    basket: lb(38, 32, 24, 12, '#e0632f') + lrd(45, 38, 2, '#2b2b2b') + lrd(55, 38, 2, '#2b2b2b') +
-      lb(24, 50, 8, 12, '#c94f22') + lb(68, 50, 8, 12, '#c94f22') +
-      lb(14, 50, 72, 12, '#a9743f') + lb(20, 68, 60, 12, '#8a5a2b') + lb(26, 86, 48, 10, '#6f4620') +
-      '<rect x="36" y="62" width="3" height="24" fill="#6f4620" opacity=".5"/><rect x="50" y="62" width="3" height="24" fill="#6f4620" opacity=".5"/><rect x="64" y="62" width="3" height="24" fill="#6f4620" opacity=".5"/>',
+  // ---------- 卡通贴纸风 SVG 卡面（19 种，与 ART 同键） ----------
+  // 视觉语言：所有形状共用一套「深暖色粗描边（3.5、圆角接头）+ 平涂主色 + 最多一层暗部」，
+  // 用 stk() 把每张牌包进同一个 <g> 继承描边；眼睛/瞳孔这类小点单独写 stroke="none"，免得被描边糊掉。
+  // 动物牌给眼睛和嘴做表情，物体牌（灯塔/小船/贝壳/篮）走干净轮廓。
+  const STK_EDGE = 'stroke="#33261a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"';
+  function stk(inner) { return '<g ' + STK_EDGE + '>' + inner + '</g>'; }
+  const ART_STICKER = {
+    crab: stk('<path d="M33,63 L19,69 M33,56 L17,57 M33,50 L20,44" fill="none"/><path d="M67,63 L81,69 M67,56 L83,57 M67,50 L80,44" fill="none"/><circle cx="21" cy="41" r="8.5" fill="#f08a3c"/><circle cx="79" cy="41" r="8.5" fill="#f08a3c"/><path d="M21,41 l7,-2.5 M21,41 l7,2.5" fill="none" stroke-width="2.4"/><path d="M79,41 l-7,-2.5 M79,41 l-7,2.5" fill="none" stroke-width="2.4"/><ellipse cx="50" cy="58" rx="22" ry="15" fill="#f08a3c"/><line x1="43" y1="45" x2="43" y2="50" stroke-width="2.6"/><line x1="57" y1="45" x2="57" y2="50" stroke-width="2.6"/><circle cx="43" cy="42" r="4.2" fill="#fff"/><circle cx="57" cy="42" r="4.2" fill="#fff"/><circle cx="43.6" cy="42" r="1.8" fill="#33261a" stroke="none"/><circle cx="57.6" cy="42" r="1.8" fill="#33261a" stroke="none"/><path d="M40,60 q10,7 20,0" fill="none" stroke-width="2.4"/>'),
+    boat: stk('<path d="M22,66 L78,66 L68,80 L32,80 Z" fill="#c98a4b"/><line x1="50" y1="26" x2="50" y2="66" stroke-width="3"/><path d="M52,28 L52,62 L74,62 Z" fill="#fdf6e3"/><path d="M48,36 L48,62 L30,62 Z" fill="#f0e2bd"/><path d="M10,84 q10,-6 20,0 q10,6 20,0 q10,-6 20,0 q10,6 20,0" fill="none" stroke="#5b9bd5" stroke-width="3.5"/>'),
+    fish: stk('<path d="M60,50 L82,36 L82,64 Z" fill="#3a78a0"/><ellipse cx="46" cy="50" rx="26" ry="16" fill="#4a90b8"/><path d="M40,34 Q46,22 54,34 Z" fill="#3a78a0"/><circle cx="34" cy="46" r="3" fill="#123047" stroke="none"/><path d="M24,55 q6,4 12,0" fill="none" stroke-width="2"/>'),
+    shark: stk('<path d="M12,54 Q26,42 50,42 L70,44 Q86,48 90,54 Q80,60 60,60 L30,60 Q18,60 12,54 Z" fill="#6b7f94"/><path d="M46,42 L54,24 L62,42 Z" fill="#5a6e82"/><path d="M12,54 L2,42 L8,54 L2,66 Z" fill="#5a6e82"/><circle cx="74" cy="50" r="2.6" fill="#123047" stroke="none"/><path d="M62,56 q10,3 18,-1" fill="none" stroke-width="2"/>'),
+    swimmer: stk('<circle cx="50" cy="34" r="11" fill="#e8b88a"/><path d="M39,32 Q40,20 50,20 Q60,20 61,32 Q55,27 50,27 Q45,27 39,32 Z" fill="#d94f3d"/><circle cx="46" cy="35" r="1.4" fill="#33261a" stroke="none"/><circle cx="54" cy="35" r="1.4" fill="#33261a" stroke="none"/><path d="M47,39 q3,2 6,0" fill="none" stroke-width="1.6"/><path d="M28,58 Q40,50 50,54 Q60,50 72,58" fill="none" stroke-width="3"/><path d="M8,68 q10,-6 20,0 q10,6 20,0 q10,-6 20,0 q10,6 20,0" fill="none" stroke="#5b9bd5" stroke-width="3.5"/><path d="M8,82 q10,-6 20,0 q10,6 20,0 q10,-6 20,0 q10,6 20,0" fill="none" stroke="#7fb5d6" stroke-width="3.5"/>'),
+    mermaid: stk('<path d="M42,25 q-5,13 -2,23 q4,-12 4,-23 z" fill="#8a5635"/><path d="M58,25 q5,13 2,23 q-4,-12 -4,-23 z" fill="#8a5635"/><path d="M44,36 C42,54 46,68 50,78 C54,68 58,54 56,36 Z" fill="#3fb0a8"/><path d="M50,76 q-14,2 -18,14 q11,-5 18,-8 q7,3 18,8 q-4,-12 -18,-14 z" fill="#2e8d88"/><path d="M45,39 C39,41 33,45 30,51 C34,53 40,49 46,45 Z" fill="#f6c99a"/><path d="M55,39 C61,41 67,45 70,51 C66,53 60,49 54,45 Z" fill="#f6c99a"/><circle cx="50" cy="24" r="11.5" fill="#8a5635"/><circle cx="50" cy="28" r="9" fill="#f6c99a"/><circle cx="46.8" cy="28" r="1.3" fill="#33261a" stroke="none"/><circle cx="53.2" cy="28" r="1.3" fill="#33261a" stroke="none"/><path d="M47,32 q3,2 6,0" fill="none" stroke-width="1.6"/>'),
+    shell: stk('<path d="M50,84 L22,44 Q50,26 78,44 Z" fill="#e8a06a"/><path d="M50,84 L36,40 M50,84 L50,32 M50,84 L64,40" fill="none" stroke-width="2.4"/><path d="M42,84 L58,84 L56,92 L44,92 Z" fill="#b06a3f"/>'),
+    octopus: stk('<path d="M30,52 Q28,26 50,26 Q72,26 70,52 Q70,60 62,62 L38,62 Q30,60 30,52 Z" fill="#8c5aa8"/><path d="M36,62 q-6,14 -16,16 M44,63 q-2,16 -8,22 M56,63 q2,16 8,22 M64,62 q6,14 16,16" fill="none" stroke-width="4"/><circle cx="42" cy="46" r="4.5" fill="#fff" stroke-width="2.5"/><circle cx="58" cy="46" r="4.5" fill="#fff" stroke-width="2.5"/><circle cx="42" cy="47" r="2" fill="#33261a" stroke="none"/><circle cx="58" cy="47" r="2" fill="#33261a" stroke="none"/>'),
+    penguin: stk('<path d="M50,20 Q32,20 32,48 L32,74 Q32,84 50,84 Q68,84 68,74 L68,48 Q68,20 50,20 Z" fill="#2b2f36"/><ellipse cx="50" cy="60" rx="13" ry="20" fill="#f4f1e8"/><circle cx="44" cy="38" r="3.5" fill="#fff" stroke="none"/><circle cx="56" cy="38" r="3.5" fill="#fff" stroke="none"/><circle cx="44" cy="38" r="1.6" fill="#33261a" stroke="none"/><circle cx="56" cy="38" r="1.6" fill="#33261a" stroke="none"/><path d="M46,44 L54,44 L50,50 Z" fill="#e8912d"/><path d="M32,52 q-8,8 -4,18" fill="none" stroke-width="4"/><path d="M68,52 q8,8 4,18" fill="none" stroke-width="4"/><path d="M40,84 l-6,7 l12,0 z" fill="#e8912d"/><path d="M60,84 l-6,7 l12,0 z" fill="#e8912d"/>'),
+    sailor: stk('<circle cx="50" cy="36" r="11" fill="#e8b88a"/><path d="M38,33 Q38,22 50,22 Q62,22 62,33 Z" fill="#f4f1e8"/><rect x="35" y="31" width="30" height="5" rx="2" fill="#2c3e66"/><circle cx="46" cy="38" r="1.4" fill="#33261a" stroke="none"/><circle cx="54" cy="38" r="1.4" fill="#33261a" stroke="none"/><path d="M47,42 q3,2 6,0" fill="none" stroke-width="1.6"/><path d="M32,86 L36,56 Q50,50 64,56 L68,86 Z" fill="#f4f1e8"/><path d="M44,55 L50,65 L56,55" fill="none" stroke-width="3"/><path d="M34,70 L66,70 M34,78 L66,78" fill="none" stroke="#2c5aa8" stroke-width="3"/>'),
+    lighthouse: stk('<path d="M42,30 L12,21 L12,39 Z" fill="#ffe08a"/><path d="M58,30 L88,21 L88,39 Z" fill="#ffe08a"/><path d="M42,35 L58,35 L62,80 L38,80 Z" fill="#f6ecd6"/><path d="M41,47 L59,47 L60,57 L40,57 Z" fill="#e8503a"/><path d="M39,66 L61,66 L62,76 L38,76 Z" fill="#e8503a"/><rect x="41" y="24" width="18" height="12" rx="1.5" fill="#ffd45e"/><line x1="50" y1="24" x2="50" y2="36" stroke-width="2"/><path d="M39,24 L61,24 L50,12 Z" fill="#e8503a"/><path d="M33,80 L67,80 L72,91 L28,91 Z" fill="#b9b2a4"/>'),
+    shoal: stk('<path d="M48,34 L58,27 L58,41 Z" fill="#3a78a0"/><ellipse cx="34" cy="34" rx="13" ry="8" fill="#4a90b8"/><circle cx="28" cy="32" r="1.8" fill="#123047" stroke="none"/><path d="M72,52 L82,45 L82,59 Z" fill="#3a78a0"/><ellipse cx="58" cy="52" rx="13" ry="8" fill="#5b9bd5"/><circle cx="52" cy="50" r="1.8" fill="#123047" stroke="none"/><path d="M54,72 L64,65 L64,79 Z" fill="#3a78a0"/><ellipse cx="40" cy="72" rx="13" ry="8" fill="#7fb5d6"/><circle cx="34" cy="70" r="1.8" fill="#123047" stroke="none"/>'),
+    colony: stk('<path d="M14,82 L86,82 L80,92 L20,92 Z" fill="#dfe9ee"/><ellipse cx="32" cy="66" rx="10" ry="15" fill="#2b2f36"/><ellipse cx="32" cy="69" rx="5.5" ry="10" fill="#f4f1e8"/><circle cx="30" cy="58" r="1.3" fill="#fff" stroke="none"/><circle cx="34" cy="58" r="1.3" fill="#fff" stroke="none"/><path d="M30,62 L34,62 L32,65 Z" fill="#e8912d"/><ellipse cx="68" cy="66" rx="10" ry="15" fill="#2b2f36"/><ellipse cx="68" cy="69" rx="5.5" ry="10" fill="#f4f1e8"/><circle cx="66" cy="58" r="1.3" fill="#fff" stroke="none"/><circle cx="70" cy="58" r="1.3" fill="#fff" stroke="none"/><path d="M66,62 L70,62 L68,65 Z" fill="#e8912d"/><ellipse cx="50" cy="58" rx="11" ry="17" fill="#2b2f36"/><ellipse cx="50" cy="61" rx="6" ry="11" fill="#f4f1e8"/><circle cx="47" cy="49" r="1.4" fill="#fff" stroke="none"/><circle cx="53" cy="49" r="1.4" fill="#fff" stroke="none"/><path d="M47,53 L53,53 L50,57 Z" fill="#e8912d"/>'),
+    captain: stk('<circle cx="50" cy="40" r="11" fill="#e8b88a"/><path d="M37,33 L63,33 L61,25 L39,25 Z" fill="#22345c"/><path d="M39,25 Q50,17 61,25 Z" fill="#22345c"/><rect x="35" y="32" width="30" height="5" rx="2" fill="#16233f"/><circle cx="50" cy="24" r="2.5" fill="#d4a017" stroke="none"/><circle cx="46" cy="41" r="1.4" fill="#33261a" stroke="none"/><circle cx="54" cy="41" r="1.4" fill="#33261a" stroke="none"/><path d="M47,45 q3,2 6,0" fill="none" stroke-width="1.6"/><path d="M30,86 L36,58 Q50,52 64,58 L70,86 Z" fill="#2c3e66"/><circle cx="50" cy="66" r="1.8" fill="#d4a017" stroke="none"/><circle cx="50" cy="74" r="1.8" fill="#d4a017" stroke="none"/><circle cx="50" cy="82" r="1.8" fill="#d4a017" stroke="none"/><path d="M36,60 L45,60 M55,60 L64,60" fill="none" stroke="#d4a017" stroke-width="3"/>'),
+    jellyfish: stk('<path d="M28,50 Q28,26 50,26 Q72,26 72,50 Q60,56 50,52 Q40,56 28,50 Z" fill="#d7bce8"/><path d="M36,54 q-4,16 2,28 M46,56 q-2,18 -6,30 M56,56 q2,18 6,30 M64,54 q4,16 -2,28" fill="none" stroke="#a97fc4" stroke-width="3.5"/><circle cx="43" cy="42" r="2.4" fill="#3a2b4a" stroke="none"/><circle cx="57" cy="42" r="2.4" fill="#3a2b4a" stroke="none"/>'),
+    lobster: stk('<path d="M50,28 Q40,28 40,46 L42,64 Q50,70 58,64 L60,46 Q60,28 50,28 Z" fill="#e0632f"/><circle cx="28" cy="40" r="9" fill="#d94f3d"/><circle cx="72" cy="40" r="9" fill="#d94f3d"/><path d="M28,40 l8,-3 M28,40 l8,4" fill="none" stroke-width="2.4"/><path d="M72,40 l-8,-3 M72,40 l-8,4" fill="none" stroke-width="2.4"/><path d="M44,68 L56,68 L50,80 Z" fill="#c94f22"/><path d="M42,80 L58,80 L50,92 Z" fill="#b83a2a"/><path d="M46,26 q-3,-11 -11,-15 M54,26 q3,-11 11,-15" fill="none" stroke-width="2.4"/><circle cx="46" cy="36" r="1.8" fill="#33261a" stroke="none"/><circle cx="54" cy="36" r="1.8" fill="#33261a" stroke="none"/>'),
+    starfish: stk('<path d="M50,16 L58,40 L84,40 L63,55 L71,82 L50,66 L29,82 L37,55 L16,40 L42,40 Z" fill="#e9c449"/><circle cx="50" cy="46" r="2.6" fill="#c9922f" stroke="none"/><circle cx="42" cy="40" r="1.4" fill="#d4a92f" stroke="none"/><circle cx="58" cy="40" r="1.4" fill="#d4a92f" stroke="none"/><circle cx="50" cy="58" r="1.4" fill="#d4a92f" stroke="none"/>'),
+    seahorse: stk('<path d="M54,26 C40,30 46,44 40,54 C34,64 44,72 40,84" fill="none" stroke="#33261a" stroke-width="13" stroke-linecap="round"/><path d="M54,26 C40,30 46,44 40,54 C34,64 44,72 40,84" fill="none" stroke="#e8a06a" stroke-width="8" stroke-linecap="round"/><circle cx="56" cy="24" r="8" fill="#e8a06a"/><path d="M63,22 L76,20 L76,26 Z" fill="#d4824f"/><path d="M40,48 q-11,1 -13,10 q9,-2 14,-3 z" fill="#f0c07a"/><path d="M40,84 q10,4 6,12" fill="none" stroke-width="4"/><circle cx="57" cy="22" r="1.8" fill="#33261a" stroke="none"/>'),
+    basket: stk('<path d="M30,52 Q50,28 70,52" fill="none" stroke-width="3"/><ellipse cx="50" cy="44" rx="13" ry="9" fill="#f08a3c"/><circle cx="37" cy="39" r="4.5" fill="#f08a3c"/><circle cx="63" cy="39" r="4.5" fill="#f08a3c"/><line x1="46" y1="34" x2="46" y2="40" stroke-width="2"/><line x1="54" y1="34" x2="54" y2="40" stroke-width="2"/><circle cx="46" cy="33" r="1.8" fill="#fff" stroke="none"/><circle cx="54" cy="33" r="1.8" fill="#fff" stroke="none"/><path d="M24,50 L76,50 L74,60 L26,60 Z" fill="#a9743f"/><path d="M28,60 L72,60 L66,88 L34,88 Z" fill="#c98a4b"/><path d="M38,62 L42,86 M50,62 L50,86 M62,62 L58,86" fill="none" stroke="#8a5a2b" stroke-width="2.5"/>'),
   };
 
   // ---------- 皮肤（卡面美术方案）----------
   // 两套图共用同样的 19 个键，渲染时按玩家选的皮肤取图。
   // 皮肤选择持久化在 localStorage：牌表页（独立页面，无对局状态）与对局页共享同一个选择。
   const SKIN_KEY = 'ssp-skin';
-  const ARTS = { origami: ART, lego: ART_LEGO };
+  const ARTS = { origami: ART, sticker: ART_STICKER };
   function getSavedSkin() {
     try {
-      return (global.localStorage && global.localStorage.getItem(SKIN_KEY) === 'lego') ? 'lego' : 'origami';
+      return (global.localStorage && global.localStorage.getItem(SKIN_KEY) === 'sticker') ? 'sticker' : 'origami';
     } catch (e) { return 'origami'; } // 无 localStorage 环境（node 自测）固定折纸
   }
   function setSavedSkin(skin) {
@@ -1086,7 +1014,7 @@
         case 'newGameNoExp': G.newGame({ useExp: false }); hidePanel(); break;
         // 开始页：选皮肤 / 直接开局
         case 'pickSkinOrigami': setSkin('origami'); break;
-        case 'pickSkinLego': setSkin('lego'); break;
+        case 'pickSkinSticker': setSkin('sticker'); break;
         case 'startBasic': startFromMenu(false); break;
         case 'startExp': startFromMenu(true); break;
         case 'undo': doUndo(); break;
@@ -1141,7 +1069,7 @@
 
   // ---------- 开始页 ----------
   // 进页不再直接开局：先在这页选皮肤 + 选牌库（基础/含一扩），以后对手数量等选项也放这里。
-  // 皮肤预览用螃蟹+小船两张代表图（一张带圆零件、一张带斜零件，两套风格差异最直观）。
+  // 皮肤预览用螃蟹+小船两张代表图（一张动物、一张物体，两套风格差异最直观）。
   function startCardPreview(skinName) {
     const art = ARTS[skinName] || ART;
     const previewTypes = ['crab', 'boat'];
@@ -1155,7 +1083,7 @@
     if (!el) return;
     const skinCard = function (name, label, note) {
       const on = skin === name;
-      return '<div class="ss-skin' + (on ? ' on' : '') + '" data-action="' + (name === 'lego' ? 'pickSkinLego' : 'pickSkinOrigami') + '" role="button" tabindex="0">' +
+      return '<div class="ss-skin' + (on ? ' on' : '') + '" data-action="' + (name === 'sticker' ? 'pickSkinSticker' : 'pickSkinOrigami') + '" role="button" tabindex="0">' +
         startCardPreview(name) +
         '<div class="ss-skin-name">' + label + (on ? ' ✓' : '') + '</div>' +
         '<div class="ss-skin-note">' + note + '</div></div>';
@@ -1166,7 +1094,7 @@
       '<p class="ss-sub">Sea Salt &amp; Paper 网页版 · 你 vs AI</p>' +
       '<div class="ss-skins">' +
       skinCard('origami', '折纸风', '默认：手写矢量插画') +
-      skinCard('lego', '乐高风', '积木零件拼搭') +
+      skinCard('sticker', '卡通贴纸风', '粗描边 + 平涂') +
       '</div>' +
       '<div class="ss-btns">' +
       '<button class="btn primary" data-action="startExp">开始（含一扩 · 66 张）</button>' +
@@ -1204,7 +1132,7 @@
     render: render, cardEl: cardEl, clearSelection: clearSelection,
     autoSuggestPairs: autoSuggestPairs, // 供 tests.js 验证「快照式自动配对」不吞刚抽到的牌
     cardHTML: cardHTML, cardTitle: cardTitle,
-    ART: ART, ART_LEGO: ART_LEGO, get skin() { return skin; }, setSkin: setSkin, // 皮肤：牌表页切换用
+    ART: ART, ART_STICKER: ART_STICKER, get skin() { return skin; }, setSkin: setSkin, // 皮肤：牌表页切换用
     EFFECT_TEXT: EFFECT_TEXT, EFFECT_LONG: EFFECT_LONG, KIND_LABEL: KIND_LABEL,
     COLOR_ICON: COLOR_ICON, colorIconHTML: colorIconHTML,
   };
