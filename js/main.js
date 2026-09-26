@@ -204,7 +204,7 @@
 
     if (kind === 'boat') {
       S.extraTurns++;
-      logP('→ 立即再行动一回合');
+      logP('→ 已记下额外回合：本回合结束（点“跳过/结束回合”）后再行动一回合');
     } else if (kind === 'fish') {
       if (S.deck.length) {
         const c = S.deck.pop();
