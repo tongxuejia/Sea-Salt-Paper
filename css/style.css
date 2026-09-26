@@ -220,6 +220,31 @@ body {
 #overlay-card .ov-pile-title { font-size: 12px; color: #8a744f; margin-bottom: 4px; }
 #overlay-card p.hint { font-size: 12px; color: #a08c60; margin: 6px 0; }
 
+/* ---------- 开始页（选皮肤 + 选牌库，全屏覆盖） ---------- */
+#start-page {
+  position: fixed; inset: 0; z-index: 40; /* 低于弹层 #overlay(50)：规则书/速查盖在开始页上 */
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 30%, rgba(255, 250, 236, .96), rgba(238, 226, 198, .98));
+  overflow-y: auto;
+}
+#start-page.hidden { display: none; }
+.ss-inner { text-align: center; padding: 24px 16px; max-width: 640px; }
+.ss-title { font-size: 34px; color: #5d4b2c; letter-spacing: 6px; margin-bottom: 4px; }
+.ss-sub { font-size: 13px; color: #8a744f; margin-bottom: 22px; }
+.ss-skins { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+.ss-skin {
+  cursor: pointer; border-radius: 14px; padding: 14px 18px 10px;
+  background: rgba(255, 252, 243, .9); border: 2px solid rgba(150, 120, 70, .3);
+  transition: transform .1s, border-color .1s;
+}
+.ss-skin:hover { transform: translateY(-2px); }
+.ss-skin.on { border-color: #2f6340; box-shadow: 0 3px 12px rgba(60, 100, 60, .22); }
+.ss-skin-name { font-size: 14px; font-weight: bold; color: #3a2f1c; margin-top: 6px; }
+.ss-skin-note { font-size: 11.5px; color: #8a744f; margin-top: 2px; }
+.ss-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.ss-btns .btn { min-width: 200px; }
+.ss-tip { font-size: 12px; color: #a08c60; margin-top: 16px; }
+
 /* 弃牌堆选择：亮出两堆顶牌辅助判断 */
 #overlay-card .discard-choices { display: flex; gap: 18px; justify-content: center; margin: 8px 0; }
 #overlay-card .dc-col {

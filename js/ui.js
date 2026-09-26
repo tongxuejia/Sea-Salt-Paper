@@ -77,6 +77,132 @@
     basket: '<polygon points="34,50 40,33 60,33 66,50" fill="#e0632f"/><polygon points="34,43 25,37 29,48" fill="#c94f22"/><polygon points="66,43 75,37 71,48" fill="#c94f22"/><circle cx="44" cy="41" r="2.3" fill="#2b2b2b"/><circle cx="56" cy="41" r="2.3" fill="#2b2b2b"/><polygon points="17,50 83,50 74,88 26,88" fill="#a9743f"/><polygon points="17,50 83,50 81,59 19,59" fill="#8a5a2b"/><polygon points="31,62 35,85 40,85 36,62" fill="#8a5a2b"/><polygon points="56,62 60,85 65,85 61,62" fill="#8a5a2b"/><polygon points="26,88 74,88 72,93 28,93" fill="#6f4620"/>',
   };
 
+  // ---------- 乐高风 SVG 卡面（19 种，与 ART 同键） ----------
+  // 视觉语言：所有积木块都是「矩形砖 + 顶上一颗凸点（stud）」，凸点圆心落在砖行线上；
+  // 叠砖时上一行的凸点被下一行砖体盖住，只暴露最外轮廓的凸点，和真积木拼接一致。
+  // 行带：r1=14-26 / r2=32-44 / r3=50-62 / r4=68-80 / r5=86-96，砖高 12，竖缝 2。
+  // 描边统一深灰半透明，色只用实色（乐高零件不打渐变）。
+  const LEGO_EDGE = 'stroke="#2b2b2b" stroke-opacity=".45" stroke-width="1.2"';
+  // 砖块：x/y/w/h 位置尺寸，fill 颜色；凸点在顶边居中（宽 ≥ 8 才画，细粢片不画）
+  function lb(x, y, w, h, fill) {
+    const studR = Math.min(3.2, w / 4);
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="1.5" fill="' + fill + '" ' + LEGO_EDGE + '/>' +
+      (w >= 8 ? '<circle cx="' + (x + w / 2) + '" cy="' + y + '" r="' + studR + '" fill="' + fill + '" ' + LEGO_EDGE + '/>' : '');
+  }
+  // 圆板（1×1 round）：系统里触手/眼白这类圆形零件
+  function lrd(cx, cy, r, fill) {
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + fill + '" ' + LEGO_EDGE + '/>';
+  }
+  // 斜面/异形件（尾鳍、钳尖这类特殊零件）：多边形同样带深缝线
+  function lp(points, fill) {
+    return '<polygon points="' + points + '" fill="' + fill + '" ' + LEGO_EDGE + '/>';
+  }
+  // 小凸点（眼睛、钮扣这类装饰点，不是独立零件）
+  function dot(cx, cy, r, fill) {
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + fill + '"/>';
+  }
+  const ART_LEGO = {
+    crab: lb(34, 50, 32, 12, '#e0632f') + lb(14, 32, 16, 12, '#e0632f') + lb(70, 32, 16, 12, '#e0632f') +
+      lb(22, 68, 10, 12, '#c94f22') + lb(40, 68, 8, 12, '#c94f22') + lb(52, 68, 8, 12, '#c94f22') + lb(68, 68, 10, 12, '#c94f22') +
+      lrd(42, 44, 4, '#f4f1e8') + lrd(58, 44, 4, '#f4f1e8') + dot(42, 44, 1.8, '#2b2b2b') + dot(58, 44, 1.8, '#2b2b2b'),
+    boat: lp('18,44 82,44 74,56 26,56', '#8a5a2b') + lb(48, 14, 4, 30, '#5b3a1a') +
+      lb(54, 14, 22, 12, '#fdf6e3') + lb(54, 32, 22, 12, '#fdf6e3') + lb(24, 32, 20, 12, '#eadbb5') +
+      lb(26, 68, 48, 12, '#a9743f') + lb(14, 86, 16, 10, '#7fb5d6') + lb(42, 86, 16, 10, '#7fb5d6') + lb(70, 86, 16, 10, '#7fb5d6'),
+    fish: lb(28, 50, 32, 12, '#4a90b8') + lp('60,50 74,44 74,68 60,62', '#3a78a0') +
+      lb(36, 32, 14, 12, '#3a78a0') + lp('20,50 28,56 20,62', '#3a78a0') + lrd(36, 56, 3.5, '#f4f1e8') + dot(36, 56, 1.7, '#123047'),
+    shark: lb(26, 50, 44, 12, '#6b7f94') + lp('70,50 88,54 70,62', '#eef2f5') +
+      lb(42, 32, 14, 12, '#5a6e82') + lp('10,50 26,50 22,62 8,66', '#5a6e82') +
+      lb(30, 68, 24, 12, '#eef2f5') + lrd(60, 54, 3.5, '#f4f1e8') + dot(60, 54, 1.7, '#123047'),
+    swimmer: lrd(50, 20, 6, '#e8b88a') + lb(40, 32, 20, 12, '#d94f3d') +
+      lb(20, 50, 16, 12, '#e8b88a') + lb(40, 50, 20, 12, '#e8b88a') + lb(64, 50, 16, 12, '#e8b88a') +
+      lb(14, 68, 16, 12, '#7fb5d6') + lb(42, 68, 16, 12, '#7fb5d6') + lb(70, 68, 16, 12, '#7fb5d6') +
+      lb(28, 86, 16, 10, '#5b9bd5') + lb(56, 86, 16, 10, '#5b9bd5'),
+    mermaid: lb(38, 14, 24, 12, '#7a4a2b') + lrd(50, 22, 7, '#f0c8a0') + lb(40, 32, 20, 12, '#3aa6a0') +
+      lb(40, 50, 20, 12, '#e8b88a') + lb(42, 68, 16, 12, '#3aa6a0') + lb(44, 86, 12, 10, '#2e8d88') +
+      lp('44,88 30,80 34,96', '#2e8d88') + lp('56,88 70,80 66,96', '#2e8d88'),
+    shell: lb(36, 14, 28, 12, '#e8a06a') + lb(28, 32, 44, 12, '#d4824f') + lb(22, 50, 56, 12, '#e8a06a') +
+      lb(22, 68, 8, 12, '#d4824f') + lb(70, 68, 8, 12, '#d4824f') + lb(36, 86, 28, 10, '#b06a3f'),
+    octopus: lb(38, 14, 24, 12, '#9a6ab8') + lb(30, 32, 40, 12, '#8c5aa8') +
+      lrd(26, 56, 5, '#7a4a94') + lrd(38, 56, 5, '#8c5aa8') + lrd(50, 56, 5, '#7a4a94') + lrd(62, 56, 5, '#8c5aa8') + lrd(74, 56, 5, '#7a4a94') +
+      lrd(30, 74, 5, '#8c5aa8') + lrd(44, 74, 5, '#7a4a94') + lrd(56, 74, 5, '#8c5aa8') + lrd(70, 74, 5, '#7a4a94') +
+      lrd(38, 92, 5, '#7a4a94') + lrd(50, 92, 5, '#8c5aa8') + lrd(62, 92, 5, '#7a4a94') +
+      lrd(42, 38, 4, '#fff') + lrd(58, 38, 4, '#fff') + dot(42, 38, 1.8, '#222') + dot(58, 38, 1.8, '#222'),
+    penguin: lb(38, 14, 24, 12, '#26292e') + lb(34, 32, 8, 12, '#1a1d21') + lb(42, 32, 16, 12, '#26292e') + lb(58, 32, 8, 12, '#1a1d21') +
+      lp('46,26 54,26 50,33', '#e8912d') + lb(46, 36, 8, 5, '#f4f1e8') +
+      lb(46, 50, 8, 12, '#f4f1e8') + lb(22, 50, 8, 12, '#26292e') + lb(70, 50, 8, 12, '#26292e') +
+      lb(38, 68, 24, 12, '#26292e') + lb(36, 86, 10, 10, '#e8912d') + lb(54, 86, 10, 10, '#e8912d') +
+      dot(44, 20, 1.8, '#fff') + dot(56, 20, 1.8, '#fff'),
+    sailor: lb(38, 14, 24, 12, '#f4f1e8') + dot(50, 19, 2.2, '#d4a017') + lb(32, 32, 36, 12, '#2c3e66') +
+      lb(40, 50, 20, 12, '#e8b88a') + lb(36, 68, 28, 12, '#f4f1e8') + lb(44, 86, 12, 10, '#2c5aa8') +
+      lb(24, 68, 8, 12, '#f4f1e8') + lb(68, 68, 8, 12, '#f4f1e8') + lb(24, 86, 8, 10, '#e8b88a') + lb(68, 86, 8, 10, '#e8b88a'),
+    lighthouse: lp('38,14 62,14 50,4', '#d94f3d') + lb(42, 14, 16, 12, '#f2c94c') + dot(50, 20, 3, '#fff') +
+      lb(42, 32, 16, 12, '#d94f3d') + lb(40, 50, 20, 12, '#f4f1e8') + lb(38, 68, 24, 12, '#d94f3d') +
+      lb(34, 86, 32, 10, '#9aa0a6') +
+      lp('42,20 18,12 18,28', '#f7e08a') + lp('58,20 82,12 82,28', '#f7e08a'),
+    shoal: lb(14, 14, 16, 12, '#4a90b8') + lp('30,14 38,20 30,26', '#3a78a0') + dot(19, 20, 1.6, '#123047') +
+      lb(44, 32, 16, 12, '#5b9bd5') + lp('60,32 68,38 60,44', '#47799e') + dot(49, 38, 1.6, '#123047') +
+      lb(24, 50, 16, 12, '#7fb5d6') + lp('40,50 48,56 40,62', '#5b93b8') + dot(29, 56, 1.6, '#123047') +
+      lb(54, 68, 16, 12, '#4a90b8') + lp('70,68 78,74 70,80', '#3a78a0') + dot(59, 74, 1.6, '#123047'),
+    colony: lb(14, 68, 72, 12, '#dfe9ee') + lb(26, 50, 10, 12, '#e8f2f6') + lb(64, 50, 10, 12, '#e8f2f6') +
+      lb(20, 32, 10, 12, '#26292e') + lb(44, 26, 12, 12, '#26292e') + lb(68, 32, 10, 12, '#26292e') +
+      lb(22, 50, 6, 12, '#f4f1e8') + lb(46, 38, 8, 12, '#f4f1e8') + lb(70, 50, 6, 12, '#f4f1e8') +
+      lp('23,26 27,26 25,32', '#e8912d') + lp('47,20 51,20 49,26', '#e8912d') + lp('71,26 75,26 73,32', '#e8912d'),
+    captain: lb(36, 14, 28, 12, '#22345c') + lb(30, 32, 40, 12, '#16233f') + lb(46, 27, 8, 4, '#d4a017') +
+      lb(40, 50, 20, 12, '#e8b88a') + lb(42, 45, 16, 4, '#e6e2d8') +
+      lb(34, 68, 32, 12, '#2c3e66') + lrd(44, 74, 1.8, '#d4a017') + lrd(50, 74, 1.8, '#d4a017') + lrd(56, 74, 1.8, '#d4a017') +
+      lb(24, 68, 8, 12, '#d4a017') + lb(68, 68, 8, 12, '#d4a017'),
+    jellyfish: lb(38, 14, 24, 12, '#b78fd0') + lb(30, 32, 40, 12, '#d7bce8') +
+      lrd(26, 56, 5, '#a97fc4') + lrd(38, 56, 5, '#b78fd0') + lrd(50, 56, 5, '#a97fc4') + lrd(62, 56, 5, '#b78fd0') + lrd(74, 56, 5, '#a97fc4') +
+      lrd(32, 74, 5, '#b78fd0') + lrd(44, 74, 5, '#a97fc4') + lrd(56, 74, 5, '#b78fd0') + lrd(68, 74, 5, '#a97fc4') +
+      lrd(50, 92, 5, '#b78fd0') + lrd(43, 38, 4, '#fff') + lrd(57, 38, 4, '#fff') + dot(43, 38, 1.7, '#3a2b4a') + dot(57, 38, 1.7, '#3a2b4a'),
+    lobster: lb(38, 32, 24, 12, '#e0632f') + lb(40, 50, 20, 12, '#c94f22') + lb(42, 68, 16, 12, '#e0632f') +
+      lp('44,80 56,80 50,96', '#b83a2a') +
+      lb(22, 50, 12, 12, '#d94f3d') + lb(66, 50, 12, 12, '#d94f3d') +
+      lb(8, 32, 12, 12, '#d94f3d') + lb(80, 32, 12, 12, '#d94f3d') +
+      lp('14,32 20,18 22,30', '#b83a2a') + lp('22,32 28,20 28,32', '#b83a2a') +
+      lp('86,32 80,18 78,30', '#b83a2a') + lp('78,32 72,20 72,32', '#b83a2a') +
+      lrd(44, 26, 4, '#f4f1e8') + lrd(56, 26, 4, '#f4f1e8') + dot(44, 26, 1.7, '#2b1a12') + dot(56, 26, 1.7, '#2b1a12') +
+      lb(36, 8, 4, 12, '#b83a2a') + lb(60, 8, 4, 12, '#b83a2a'),
+    starfish: lp('50,14 62,26 50,38 38,26', '#e9c449') +
+      lb(14, 32, 12, 12, '#d4a92f') + lb(74, 32, 12, 12, '#d4a92f') +
+      lb(38, 32, 24, 12, '#e9c449') + lb(26, 50, 12, 12, '#e9c449') + lb(62, 50, 12, 12, '#e9c449') +
+      lb(40, 68, 20, 12, '#d4a92f') + dot(50, 30, 3, '#f6e6a8'),
+    seahorse: lb(46, 14, 20, 12, '#e8a06a') + lp('66,16 78,20 66,26', '#d4824f') +
+      lb(38, 32, 20, 12, '#d4824f') + lb(58, 36, 10, 12, '#f0c07a') +
+      lb(34, 50, 18, 12, '#e8a06a') + lb(36, 68, 16, 12, '#d4824f') + lb(42, 86, 22, 10, '#c9703f') +
+      lrd(58, 20, 3.5, '#f4f1e8') + dot(58, 20, 1.6, '#3a2412'),
+    basket: lb(38, 32, 24, 12, '#e0632f') + lrd(45, 38, 2, '#2b2b2b') + lrd(55, 38, 2, '#2b2b2b') +
+      lb(24, 50, 8, 12, '#c94f22') + lb(68, 50, 8, 12, '#c94f22') +
+      lb(14, 50, 72, 12, '#a9743f') + lb(20, 68, 60, 12, '#8a5a2b') + lb(26, 86, 48, 10, '#6f4620') +
+      '<rect x="36" y="62" width="3" height="24" fill="#6f4620" opacity=".5"/><rect x="50" y="62" width="3" height="24" fill="#6f4620" opacity=".5"/><rect x="64" y="62" width="3" height="24" fill="#6f4620" opacity=".5"/>',
+  };
+
+  // ---------- 皮肤（卡面美术方案）----------
+  // 两套图共用同样的 19 个键，渲染时按玩家选的皮肤取图。
+  // 皮肤选择持久化在 localStorage：牌表页（独立页面，无对局状态）与对局页共享同一个选择。
+  const SKIN_KEY = 'ssp-skin';
+  const ARTS = { origami: ART, lego: ART_LEGO };
+  function getSavedSkin() {
+    try {
+      return (global.localStorage && global.localStorage.getItem(SKIN_KEY) === 'lego') ? 'lego' : 'origami';
+    } catch (e) { return 'origami'; } // 无 localStorage 环境（node 自测）固定折纸
+  }
+  function setSavedSkin(skin) {
+    try { if (global.localStorage) global.localStorage.setItem(SKIN_KEY, skin); } catch (e) { /* 存不上也不影响本局 */ }
+  }
+  let skin = getSavedSkin();
+  // 取当前皮肤对应的一套牌面 SVG（键 = 牌型）
+  function currentArt() { return ARTS[skin] || ART; }
+  // 切皮肤：记住选择并重绘；若停在开始页则连开始页一起刷新（预览图跟着变）
+  function setSkin(next) {
+    skin = ARTS[next] ? next : 'origami';
+    setSavedSkin(skin);
+    const S = global.SPGame && global.SPGame.state;
+    if (S) render(S);
+    const startEl = $('start-page');
+    if (startEl && !startEl.classList.contains('hidden')) renderStartPage();
+  }
+
   const BACK_SVG = '<rect x="0" y="0" width="100" height="140" fill="#2c5a8c"/><path d="M0,30 Q12,22 25,30 T50,30 T75,30 T100,30" stroke="#4a7cae" stroke-width="3" fill="none"/><path d="M0,55 Q12,47 25,55 T50,55 T75,55 T100,55" stroke="#4a7cae" stroke-width="3" fill="none"/><path d="M0,80 Q12,72 25,80 T50,80 T75,80 T100,80" stroke="#4a7cae" stroke-width="3" fill="none"/><path d="M0,105 Q12,97 25,105 T50,105 T75,105 T100,105" stroke="#4a7cae" stroke-width="3" fill="none"/><polygon points="50,52 62,70 50,88 38,70" fill="#f2efe6"/><circle cx="50" cy="70" r="5" fill="#2c5a8c"/>';
 
   // ---------- 卡牌 DOM ----------
@@ -148,7 +274,7 @@
     div.style.cssText = cardBgStyle(col.hex);
     div.title = cardTitle(c);
     div.innerHTML =
-      '<svg class="card-art" viewBox="0 0 100 100">' + (ART[c.type] || '') + '</svg>' +
+      '<svg class="card-art" viewBox="0 0 100 100">' + (currentArt()[c.type] || '') + '</svg>' +
       '<div class="card-name">' + t.name + '</div>' +
       '<div class="card-corner">' + colorIconHTML(c.color) +
       (t.exp ? '<div class="exp-corner">扩</div>' : '') + '</div>' +
@@ -166,7 +292,7 @@
   function cardHTML(c, size) {
     const t = CARD_TYPES[c.type] || { name: '?', count: '' }, col = COLORS[c.color] || { name: '?', hex: '#999999' };
     return '<div class="card size-' + size + (t.exp ? ' is-exp' : '') + '" data-card-id="' + c.id + '" style="' + cardBgStyle(col.hex) + '" title="' + cardTitle(c).replace('\n', '：') + '">' +
-      '<svg class="card-art" viewBox="0 0 100 100">' + (ART[c.type] || '') + '</svg>' +
+      '<svg class="card-art" viewBox="0 0 100 100">' + (currentArt()[c.type] || '') + '</svg>' +
       '<div class="card-name">' + t.name + '</div>' +
       '<div class="card-corner">' + colorIconHTML(c.color) +
       (t.exp ? '<div class="exp-corner">扩</div>' : '') + '</div>' +
@@ -964,10 +1090,15 @@
         case 'callLastChance': G.callLastChance(); break;
         case 'passCall': G.passCall(); break;
         case 'continueAfterRound': G.continueAfterRound(); break;
-        // “再来一局”保持当前的一扩设置不变
+        // “再来一局”保持当前的一扩设置与皮肤不变
         case 'newGame': { const keep = !!(G.state && G.state.useExp); G.newGame({ useExp: keep }); hidePanel(); break; }
         case 'newGameWithExp': G.newGame({ useExp: true }); hidePanel(); break;
         case 'newGameNoExp': G.newGame({ useExp: false }); hidePanel(); break;
+        // 开始页：选皮肤 / 直接开局
+        case 'pickSkinOrigami': setSkin('origami'); break;
+        case 'pickSkinLego': setSkin('lego'); break;
+        case 'startBasic': startFromMenu(false); break;
+        case 'startExp': startFromMenu(true); break;
         case 'toggleInfo': infoMode = !infoMode; G && render(G.state); break;
         case 'toggleExp': showExpConfirm(); break;
         case 'undo': doUndo(); break;
@@ -1031,12 +1162,58 @@
     if (S) render(S);
   }
 
+  // ---------- 开始页 ----------
+  // 进页不再直接开局：先在这页选皮肤 + 选牌库（基础/含一扩），以后对手数量等选项也放这里。
+  // 皮肤预览用螃蟹+小船两张代表图（一张带圆零件、一张带斜零件，两套风格差异最直观）。
+  function startCardPreview(skinName) {
+    const art = ARTS[skinName] || ART;
+    const previewTypes = ['crab', 'boat'];
+    return previewTypes.map(function (t) {
+      return '<svg class="card-art" viewBox="0 0 100 100" style="width:56px;height:56px">' + (art[t] || '') + '</svg>';
+    }).join('');
+  }
+
+  function renderStartPage() {
+    const el = $('start-page');
+    if (!el) return;
+    const skinCard = function (name, label, note) {
+      const on = skin === name;
+      return '<div class="ss-skin' + (on ? ' on' : '') + '" data-action="' + (name === 'lego' ? 'pickSkinLego' : 'pickSkinOrigami') + '" role="button" tabindex="0">' +
+        startCardPreview(name) +
+        '<div class="ss-skin-name">' + label + (on ? ' ✓' : '') + '</div>' +
+        '<div class="ss-skin-note">' + note + '</div></div>';
+    };
+    el.innerHTML =
+      '<div class="ss-inner">' +
+      '<h2 class="ss-title">海盐折纸</h2>' +
+      '<p class="ss-sub">Sea Salt &amp; Paper 网页版 · 你 vs AI</p>' +
+      '<div class="ss-skins">' +
+      skinCard('origami', '折纸风', '默认：手写矢量插画') +
+      skinCard('lego', '乐高风', '积木零件拼搭') +
+      '</div>' +
+      '<div class="ss-btns">' +
+      '<button class="btn primary" data-action="startExp">开始（含一扩 · 66 张）</button>' +
+      '<button class="btn ghost" data-action="startBasic">只用基础牌（58 张）</button>' +
+      '</div>' +
+      '<p class="ss-tip">皮肤随时可在这页换；牌表页也能预览两套图。</p>' +
+      '</div>';
+    el.classList.remove('hidden');
+  }
+
+  // 从开始页开局：隐藏开始页，按当前皮肤重开一局
+  function startFromMenu(useExp) {
+    const el = $('start-page');
+    if (el) el.classList.add('hidden');
+    global.SPGame.newGame({ useExp: useExp });
+  }
+
   // ---------- 启动 ----------
   function init() {
     bind();
     clearSelection();
     global.SPGame.onChange(render);
-    global.SPGame.newGame();
+    // 不自动开局：先停在开始页，玩家选皮肤/牌库后才 newGame
+    renderStartPage();
   }
 
   // 牌表页（cards.html）只加载牌数据与本文件，没有棋盘 DOM → 不能自动开局
@@ -1050,7 +1227,8 @@
     render: render, cardEl: cardEl, clearSelection: clearSelection,
     autoSuggestPairs: autoSuggestPairs, // 供 tests.js 验证「快照式自动配对」不吞刚抽到的牌
     cardHTML: cardHTML, cardTitle: cardTitle,
-    ART: ART, EFFECT_TEXT: EFFECT_TEXT, EFFECT_LONG: EFFECT_LONG, KIND_LABEL: KIND_LABEL,
+    ART: ART, ART_LEGO: ART_LEGO, get skin() { return skin; }, setSkin: setSkin, // 皮肤：牌表页切换用
+    EFFECT_TEXT: EFFECT_TEXT, EFFECT_LONG: EFFECT_LONG, KIND_LABEL: KIND_LABEL,
     COLOR_ICON: COLOR_ICON, colorIconHTML: colorIconHTML,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
