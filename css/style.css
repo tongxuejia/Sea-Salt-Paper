@@ -196,34 +196,32 @@ body {
 #overlay.hidden { display: none; }
 
 /* ---------- 回合归属横幅 ---------- */
-/* 挂在 #app 上、z-index 高于弹层 #overlay(50)，因为选牌/弃牌弹层开着时也要看得到是谁的回合；
-   pointer-events:none 保证它只做提示，不挡任何点击 */
+/* 作为 #center-zone 里的正常流元素，插在提示条与牌堆之间（= 用户红框位置）；
+   无论显隐都占一行高度，避免弹出/收起时牌堆上下跳；pointer-events:none 不挡点击 */
 #turn-banner {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 60;
-  pointer-events: none;
-  padding: 10px 26px;
+  align-self: center;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 22px;
   border-radius: 999px;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: bold;
   letter-spacing: 1px;
   color: #fff;
   background: linear-gradient(180deg, #3f7d4e, #2f6340);
   border: 2px solid #2f6340;
-  box-shadow: 0 6px 18px rgba(30, 20, 5, 0.35);
-  animation: turnBannerIn .22s ease-out;
+  box-shadow: 0 4px 12px rgba(30, 20, 5, 0.25);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none;
 }
+#turn-banner.show { opacity: 1; transform: translateY(0); }
 #turn-banner.ai {
   background: linear-gradient(180deg, #5a7fa8, #3d5f84);
   border-color: #3d5f84;
-}
-#turn-banner.hidden { display: none; }
-@keyframes turnBannerIn {
-  from { opacity: 0; transform: translate(-50%, -8px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
 }
 #overlay-card {
   background: #fdf8ec;
@@ -540,14 +538,14 @@ body {
   #call-bar .btn .bt-long, #duo-bar .btn .bt-long { display: none; }
   #call-bar .btn .bt-short, #duo-bar .btn .bt-short { display: inline; }
   /* 回合横幅收小一号：手机上不吃掉牌区高度 */
-  #turn-banner { font-size: 15px; padding: 8px 20px; top: 8px; }
+  #turn-banner { font-size: 15px; padding: 4px 18px; min-height: 30px; }
 }
 
 /* 矮视口（手机横屏 / 小窗口）：宽度超过 640px 所以上面的手机块不生效，
    但纵向只有 390px 可用，这里把提示条/日志/气泡收到最小，否则整页要上下滑 */
 @media (max-height: 560px) {
-  /* 矮视口里横幅改成左上角小胶囊，不盖住居中的牌区 */
-  #turn-banner { top: 6px; font-size: 13px; padding: 5px 14px; }
+  /* 矮视口里横幅收到最小，不多吃牌区高度 */
+  #turn-banner { font-size: 13px; padding: 2px 14px; min-height: 26px; }
   /* 牌档再降一档：390px 高时按 10.2vh 算会卡在 42px 下限下不来，牌行就吃掉横屏本就不多的余量 */
   :root { --hand-w: clamp(34px, min(13.4vw, 9.4vh), 74px); }
   #app { padding: 4px; gap: 2px; }

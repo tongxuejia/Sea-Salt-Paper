@@ -326,31 +326,23 @@
   }
 
   // ---------- 回合提示与「到期自动处理」 ----------
-  // 横幅元素懒创建并挂在 #app 上：不用改 index.html，且弹层（#overlay）关掉后仍能复用
-  function turnBannerEl() {
-    const app = $('app');
-    if (!app) return null;
-    let banner = $('turn-banner');
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'turn-banner';
-      app.appendChild(banner);
-    }
-    return banner;
-  }
+  // 横幅是 index.html 里写在 #phase-bar 下方的固定元素（落在牌堆上方那块空白），
+  // 用 .show 控制透明度显隐（预留高度、不致牌堆上下跳）。
+  function turnBannerEl() { return $('turn-banner'); }
 
   function showTurnBanner(text) {
     const banner = turnBannerEl();
     if (!banner) return;
     banner.textContent = text;
-    banner.className = text.indexOf('电脑') === 0 ? 'ai' : '';
+    banner.classList.toggle('ai', text.indexOf('电脑') === 0);
+    banner.classList.add('show');
     if (bannerTimer) clearTimeout(bannerTimer);
     bannerTimer = setTimeout(hideTurnBanner, 1600);
   }
 
   function hideTurnBanner() {
     const banner = $('turn-banner');
-    if (banner) banner.className = 'hidden';
+    if (banner) banner.classList.remove('show');
     if (bannerTimer) { clearTimeout(bannerTimer); bannerTimer = null; }
   }
 
