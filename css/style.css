@@ -43,7 +43,7 @@ body {
 }
 
 /* ---------- 区域通用 ---------- */
-#ai-zone, #player-zone {
+#ai-zone, #ai2-zone, #player-zone {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -55,6 +55,23 @@ body {
 }
 
 #player-zone { background: rgba(252, 248, 235, 0.85); }
+
+/* 两个电脑对手区在顶部纵向堆叠（AI1 在上、AI2 在下），共占网格第一行 */
+#ai-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* 第 2 个 AI 区与 #ai-zone 共用上面的通用样式，同尺寸同样式，仅 3 人局才显示 */
+#ai2-zone.hidden { display: none; }
+/* AI 手牌用 mini 牌，行高按 mini 算（与 #ai-hand 同档） */
+#ai2-hand { min-height: calc(var(--mini-w) * 1.4 + 8px); }
+#ai2-bubble {
+  min-height: 18px;
+  font-size: 12px;
+  color: #8a4a1a;
+  font-style: italic;
+}
 
 .zone-head {
   display: flex;
@@ -137,8 +154,8 @@ body {
 }
 /* AI 手牌用的是 mini 牌，行高按 mini 算 */
 #ai-hand { min-height: calc(var(--mini-w) * 1.4 + 8px); }
-/* 空行塌掉（#ai-hand:empty 特异性高于 #ai-hand，否则盖不住） */
-.hand-row:empty, .table-row:empty, #ai-hand:empty { min-height: 0; padding: 0; }
+/* 空行塌掉（#ai-hand:empty / #ai2-hand:empty 特异性高于按 id 设的 min-height，否则盖不住） */
+.hand-row:empty, .table-row:empty, #ai-hand:empty, #ai2-hand:empty { min-height: 0; padding: 0; }
 /* 例外：玩家区的手牌行为开局保留一行占位高（开局 AI 先手、你还不手里没牌时），不至于整个玩家区塌得太窄；牌上手后自然被内容撑高 */
 #player-zone .hand-row:empty { min-height: calc(var(--hand-w) * 1.4 + 8px); padding: 4px 2px; }
 
@@ -255,6 +272,13 @@ body {
 .keep-confirm .kc-text { font-size: 13px; line-height: 1.4; color: #4a3a22; text-align: center; }
 #overlay-card .ov-pile { margin: 8px 0; }
 #overlay-card .ov-pile-title { font-size: 12px; color: #8a744f; margin-bottom: 4px; }
+/* 多人局 鲨鱼/水母 选目标弹层：每个候选对手一个竖排按钮（名字 + 手牌/面前张数） */
+#overlay-card .target-pick { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#overlay-card .target-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 148px; padding: 12px 18px;
+}
+#overlay-card .target-btn .tp-sub { font-size: 11.5px; font-weight: normal; opacity: .85; }
 #overlay-card p.hint { font-size: 12px; color: #a08c60; margin: 6px 0; }
 
 /* ---------- 开始页（选皮肤 + 选牌库，全屏覆盖） ---------- */
@@ -278,6 +302,18 @@ body {
 .ss-skin.on { border-color: #2f6340; box-shadow: 0 3px 12px rgba(60, 100, 60, .22); }
 .ss-skin-name { font-size: 14px; font-weight: bold; color: #3a2f1c; margin-top: 6px; }
 .ss-skin-note { font-size: 11.5px; color: #8a744f; margin-top: 2px; }
+/* 对手数量选择（开始页）：比皮肤卡略短一排分段按钮 */
+.ss-label { font-size: 12.5px; color: #8a744f; letter-spacing: 2px; margin: 2px 0 10px; }
+.ss-opps { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+.ss-opp {
+  cursor: pointer; border-radius: 12px; padding: 12px 22px; min-width: 132px;
+  background: rgba(255, 252, 243, .9); border: 2px solid rgba(150, 120, 70, .3);
+  transition: transform .08s, box-shadow .08s;
+}
+.ss-opp:hover { transform: translateY(-2px); }
+.ss-opp.on { border-color: #2f6340; box-shadow: 0 3px 12px rgba(60, 100, 60, .22); }
+.ss-opp-name { font-size: 15px; font-weight: bold; color: #3a2f1c; }
+.ss-opp-note { font-size: 11.5px; color: #8a744f; margin-top: 3px; }
 .ss-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .ss-btns .btn { min-width: 200px; }
 .ss-tip { font-size: 12px; color: #a08c60; margin-top: 16px; }
@@ -488,7 +524,8 @@ body {
 /* 手机竖屏：中央区（牌库+日志）优先保留，玩家面板缩到最小可用 */
 @media (max-width: 640px) {
   #app { padding: 5px; gap: 3px; }
-  #ai-zone, #player-zone { padding: 4px 6px; gap: 4px; border-radius: 10px; }
+  #ai-stack { gap: 3px; }
+  #ai-zone, #ai2-zone, #player-zone { padding: 4px 6px; gap: 4px; border-radius: 10px; }
   .pname { font-size: 13px; }
   .pstats { font-size: 11.5px; }
   .pstats b { font-size: 12.5px; }
@@ -510,7 +547,7 @@ body {
   #call-bar, #duo-bar { gap: 6px; min-height: 26px; }
   .call-tip { font-size: 12px; }
   .sel-info { font-size: 11px; }
-  #ai-bubble { font-size: 11px; min-height: 12px; }
+  #ai-bubble, #ai2-bubble { font-size: 11px; min-height: 12px; }
   /* 弹层：满宽、内边距收紧，靠自身 overflow:auto 滚动 */
   #overlay-card { padding: 14px 10px; border-radius: 12px; max-height: 92dvh; }
   #overlay-card h3 { font-size: 17px; }
@@ -552,10 +589,11 @@ body {
   /* 牌档再降一档：390px 高时按 10.2vh 算会卡在 42px 下限下不来，牌行就吃掉横屏本就不多的余量 */
   :root { --hand-w: clamp(34px, min(13.4vw, 9.4vh), 74px); }
   #app { padding: 4px; gap: 2px; }
-  #ai-zone, #player-zone { padding: 3px 8px; gap: 2px; }
+  #ai-stack { gap: 2px; }
+  #ai-zone, #ai2-zone, #player-zone { padding: 3px 8px; gap: 2px; }
   #phase-bar { font-size: 12px; padding: 2px 12px; min-height: 20px; }
   #log { min-height: 20px; max-height: 64px; font-size: 11px; line-height: 1.45; padding: 3px 8px; }
-  #ai-bubble { min-height: 0; }
+  #ai-bubble, #ai2-bubble { min-height: 0; }
   .piles { gap: 14px; }
   .pile-label { font-size: 10.5px; }
   #call-bar, #duo-bar { min-height: 24px; }

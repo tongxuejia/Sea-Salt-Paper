@@ -4,9 +4,11 @@
   'use strict';
   const { buildDeck, CARD_TYPES, COLORS } = global.SPCards;
   const R = global.SPRules;
-  const HUMAN = 0, AI = 1;
-  const TARGET = 40;          // 2 人局目标分
+  const HUMAN = 0;          // 玩家固定在 0；其余下标 1..n-1 都是电脑
   const MAX_PAIR_PLAYS = 12;  // 单回合成对上限（防呆）
+
+  // 官方胜利分随人数递减：2/3/4 人 = 40/35/30（本实现最多支持 3 人）
+  function targetFor(n) { return n >= 4 ? 30 : n === 3 ? 35 : 40; }
 
   let S = null;
   const listeners = [];
@@ -16,7 +18,7 @@
   // 所以悔棋只能撤“当前这一手”，不能看了 AI 的回应再反悔，结算后也不能反悔宣告。
   let history = [];
   const HISTORY_LIMIT = 40;
-  const UNDO_PHASES = { draw: 1, keep: 1, discard: 1, duo: 1, crabPick: 1, lobsterPick: 1, call: 1 };
+  const UNDO_PHASES = { draw: 1, keep: 1, discard: 1, duo: 1, crabPick: 1, lobsterPick: 1, targetPick: 1, call: 1 };
   function clearHistory() { history = []; }
   function snapshot() {
     if (!S || S.current !== HUMAN) return;
@@ -46,70 +48,99 @@
     return CARD_TYPES[kind] ? CARD_TYPES[kind].name + '×2' : kind;
   }
   function log(text, side) {
-    S.log.push({ text: text, side: side || 'sys' });
+    const s = side || 'sys';
+    // by 记录这条日志出自哪个玩家下标（sys 为 -1），供 UI 给每个 AI 单独显示气泡与日志前缀
+    S.log.push({ text: text, side: s, by: s === 'sys' ? -1 : S.current });
     if (S.log.length > 30) S.log.shift();
   }
   function logP(text) { log(text, S.current === HUMAN ? 'you' : 'ai'); }
+
+  // ---------- 多人辅助 ----------
+  function isAI(idx) { return idx !== HUMAN; }
+  function nextPlayer(idx) { return (idx + 1) % S.numPlayers; }
+  // 玩家显示名：0=你；2 人局 AI 叫“AI”，3 人局区分“AI1 / AI2”
+  function playerLabel(idx) {
+    const p = S && S.players && S.players[idx];
+    return p && p.label ? p.label : (idx === HUMAN ? '你' : 'AI');
+  }
+  // 飞牌动画的“手牌区”标识：人类手牌与每个 AI 的手牌区各一个 key（ui.js FX_SOURCE 同名）
+  function handZone(idx) { return idx === HUMAN ? 'playerHand' : ('aiHand' + idx); }
+  // Last Chance 窗口内已亮牌受保护的玩家（宣告者 + 已打完最终回合的对手），不能被偷/被锁
+  function isProtected(idx) { return !!S.lastChance && S.lcProtected.indexOf(idx) !== -1; }
+  // 可作为偷牌/锁手目标的对手下标（排除自己与受保护者）
+  function stealTargets() {
+    const out = [];
+    for (let i = 0; i < S.numPlayers; i++) {
+      if (i !== S.current && !isProtected(i)) out.push(i);
+    }
+    return out;
+  }
 
   // ---------- 状态构建 ----------
   function setupBoard() {
     history = []; // 新一轮开始，上一轮的悔棋快照作废
     S.deck = buildDeck(null, S.useExp);
-    S.discards = [[S.deck.pop()], [S.deck.pop()]];
+    S.discards = [[S.deck.pop()], [S.deck.pop()]]; // 无论几人都是 2 个弃牌堆（官方）
     for (const p of S.players) { p.hand = []; p.table = []; }
     S.pendingDraw = null; S.pendingKeep = null; S.pendingLobster = null;
     S.extraTurns = 0; S.pairPlays = 0;
-    S.lastChance = null; S.revealAI = false;
-    S.jellyLock = null; // 锁手只作“下一回合”，跨轮不延续
+    S.lastChance = null; S.lcProtected = []; S.revealIdx = -1; S.pendingEffect = null;
+    S.jellyLock = null; // 锁手只作“下一回合”，跳轮不延续
     S.phase = 'draw';
   }
-
+  
   // opts.useExp：是否混入一扩 Extra Salt 的 8 张牌（默认开）
+  // opts.aiCount：电脑对手数 1 或 2（默认 1，即 2 人局，保持所有旧行为与测试不变）
   function newGame(opts) {
     const useExp = !(opts && opts.useExp === false);
+    const aiCount = (opts && opts.aiCount === 2) ? 2 : 1;
+    const n = 1 + aiCount;
+    const players = [{ hand: [], table: [], total: 0, label: '你' }];
+    for (let k = 1; k < n; k++) {
+      players.push({ hand: [], table: [], total: 0, label: aiCount >= 2 ? ('AI' + k) : 'AI' });
+    }
     S = {
       deck: [], discards: [[], []],
-      players: [
-        { hand: [], table: [], total: 0 },
-        { hand: [], table: [], total: 0 },
-      ],
+      players: players,
+      numPlayers: n,
       round: 1,
-      current: Math.random() < 0.5 ? HUMAN : AI,
+      current: Math.floor(Math.random() * n), // 首局随机先手
       phase: 'draw',
       extraTurns: 0, pairPlays: 0,
-      pendingDraw: null, pendingKeep: null, pendingLobster: null,
-      lastChance: null, revealAI: false,
+      pendingDraw: null, pendingKeep: null, pendingLobster: null, pendingEffect: null,
+      lastChance: null, lcProtected: [], revealIdx: -1,
       lastToAct: HUMAN, roundEnder: null,
       roundResult: null, gameOver: null,
       log: [], fast: false,
       useExp: useExp, jellyLock: null,
+      target: targetFor(n),
     };
     setupBoard();
-    log('—— 第 1 轮开始，' + (S.current === HUMAN ? '你' : 'AI') + ' 先手 ——', 'sys');
+    log('—— 第 1 轮开始，' + playerLabel(S.current) + ' 先手 ——', 'sys');
     log(useExp ? '牌库 66 张（含一扩 Extra Salt 8 张）' : '牌库 58 张（仅基础牌）', 'sys');
     emit();
   }
-
+  
   // ---------- 发布 ----------
   function emit() {
     for (const fn of listeners) fn(S);
     maybeAI();
   }
-
+  
   // AI 自动驱动（仅浏览器）；node 模拟用 tick() 手动驱动
   function maybeAI() {
     if (typeof document === 'undefined') return;
-    if (!S || S.current !== AI) return;
+    if (!S || !isAI(S.current)) return;
     if (S.phase === 'roundOver' || S.phase === 'gameOver') return;
     const delay = S.fast ? 90 : 550 + Math.random() * 550;
     setTimeout(function () {
-      if (S && S.current === AI && S.phase !== 'roundOver' && S.phase !== 'gameOver') tick();
+      if (S && isAI(S.current) && S.phase !== 'roundOver' && S.phase !== 'gameOver') tick();
     }, delay);
   }
-
+  
   // AI 执行一步决策
   function tick() {
-    if (!S || S.current !== AI) return;
+    if (!S || !isAI(S.current)) return;
     const d = global.SPAI.decide(S);
     const fn = SPGame[d.action];
     if (typeof fn === 'function') fn.apply(null, d.args);
@@ -122,7 +153,7 @@
     if (R.checkMermaidWin(S.players[pIdx])) {
       S.gameOver = { winner: pIdx, byMermaid: true };
       S.phase = 'gameOver';
-      log((pIdx === HUMAN ? '你' : 'AI') + ' 集齐 4 张美人鱼，直接获胜！', 'sys');
+      log(playerLabel(pIdx) + ' 集齐 4 张美人鱼，直接获胜！', 'sys');
       return true;
     }
     return false;
@@ -132,7 +163,7 @@
 
   // 飞牌动画标记：牌进入当前玩家手牌时记录来源/去向/是否公开（AI 默认飞背面以隐藏信息）
   function setFx(card, fromKey, faceUp) {
-    S.fx = { from: fromKey, to: S.current === HUMAN ? 'playerHand' : 'aiHand', cardId: card.id, card: card, faceUp: !!faceUp };
+    S.fx = { from: fromKey, to: handZone(S.current), cardId: card.id, card: card, faceUp: !!faceUp };
   }
 
   // 摸牌 A：从牌库抽 2 张
@@ -188,8 +219,39 @@
     emit();
   }
 
-  // 打出成对
-  function playPair(ids) {
+  // 决定 鲨鱼偷牌 / 水母锁手 作用到哪个对手：
+  //   返回数字 = 立即对该下标生效；返回 'PICK' = 需人类点选目标（仅多人局）；返回 -1 = 无可作用对象（落空）。
+  //   2 人局只有1 个对手→自动；AI 会传 targetIdx；人类在 >2 人不传→进 targetPick 阶段。
+  function resolveEffectTarget(targetIdx) {
+    const cands = stealTargets();
+    if (!cands.length) return -1;
+    if (S.numPlayers <= 2) return cands[0];
+    if (targetIdx == null) return 'PICK';
+    return cands.indexOf(targetIdx) !== -1 ? targetIdx : cands[0];
+  }
+
+  // 执行偷牌：从 target 手牌随机拿 1 张入自己手。返回 true 表示因此集齐美人鱼游戏已结束。
+  function applySteal(target) {
+    const me = S.players[S.current];
+    const opp = S.players[target];
+    if (!opp.hand.length) { logP('→ 对手没有手牌，效果落空'); return false; }
+    const i = Math.floor(Math.random() * opp.hand.length);
+    const stolen = opp.hand.splice(i, 1)[0];
+    me.hand.push(stolen);
+    setFx(stolen, handZone(target), S.current === HUMAN); // 人类可看到偷到的牌正面；AI 偷飞背面
+    // 人类可看到被偷的牌名；AI 偷任何人时不暂露具体哪张（别人手牌本就不公开）
+    logP(S.current === HUMAN ? '→ 从 ' + playerLabel(target) + ' 手中偷走 1 张：' + cname(stolen) : '→ 从对手手中偷走 1 张牌');
+    return checkWin(S.current);
+  }
+
+  // 执行锁手： target 下一回合只能摸 1 张、不出牌不宣告
+  function applyLock(target) {
+    S.jellyLock = target;
+    logP('→ ' + playerLabel(target) + ' 下一个回合只能从牌库摸 1 张（不出牌、不可宣告）');
+  }
+
+  // 打出成对（targetIdx 仅 鲨鱼/水母 在多人局需要；AI 会传，人类不传则弹层选）
+  function playPair(ids, targetIdx) {
     if (!S || S.phase !== 'duo') return;
     if (S.pairPlays >= MAX_PAIR_PLAYS) return;
     const p = S.players[S.current];
@@ -214,16 +276,10 @@
         if (checkWin(S.current)) { emit(); return; }
       } else logP('→ 牌库已空，效果落空');
     } else if (kind === 'sharkswimmer') {
-      const opp = S.players[1 - S.current];
-      if (opp.hand.length) {
-        const i = Math.floor(Math.random() * opp.hand.length);
-        const stolen = opp.hand.splice(i, 1)[0];
-        p.hand.push(stolen);
-        setFx(stolen, S.current === HUMAN ? 'aiHand' : 'playerHand', S.current === HUMAN);
-        // 人类可看到被偷的牌名；AI 偷人类时不暴露具体是哪张（人类手牌本就不公开）
-        logP(S.current === HUMAN ? '→ 从对手手中偷走 1 张：' + cname(stolen) : '→ 从对手手中偷走 1 张牌');
-        if (checkWin(S.current)) { emit(); return; }
-      } else logP('→ 对手没有手牌，效果落空');
+      const t = resolveEffectTarget(targetIdx);
+      if (t === 'PICK') { S.pendingEffect = { kind: 'sharkswimmer' }; S.phase = 'targetPick'; emit(); return; }
+      if (t < 0) { logP('→ 无可偷目标（对手都无手牌或已亮牌受保护），效果落空'); }
+      else if (applySteal(t)) { emit(); return; }
     } else if (kind === 'crab') {
       if (S.discards[0].length || S.discards[1].length) {
         S.phase = 'crabPick';
@@ -238,11 +294,28 @@
         logP('→ 翻看牌库顶 ' + n + ' 张，选 1 张入手（其余放回后重洗）');
       } else logP('→ 牌库已空，效果落空');
     } else if (kind === 'jellyfishswimmer') {
-      // 一扩·水母：对手下一个回合只能从牌库摸 1 张，不出牌、不宣告
-      S.jellyLock = 1 - S.current;
-      logP('→ 对手下一个回合只能从牌库摸 1 张（不出牌、不可宣告）');
+      // 一扩·水母：选一个对手，其下一回合只能从牌库摸 1 张，不出牌、不宣告
+      const t = resolveEffectTarget(targetIdx);
+      if (t === 'PICK') { S.pendingEffect = { kind: 'jellyfishswimmer' }; S.phase = 'targetPick'; emit(); return; }
+      if (t < 0) { logP('→ 无可锁对手（都已亮牌受保护），效果落空'); }
+      else applyLock(t);
     }
     emit();
+  }
+
+  // 人类在多人局为 鲨鱼/水母 选目标（phase === 'targetPick'）。效果接回 duo。
+  function pickTarget(playerIdx) {
+    if (!S || S.phase !== 'targetPick' || !S.pendingEffect) return;
+    // 先校验目标合法再清空 pendingEffect：否则误点非法目标会把待决效果抹掉、弹层永久卡住无法再选
+    if (stealTargets().indexOf(playerIdx) === -1) return;
+    const kind = S.pendingEffect.kind;
+    S.pendingEffect = null;
+    S.phase = 'duo';
+    let ended = false;
+    if (kind === 'sharkswimmer') ended = applySteal(playerIdx);
+    else applyLock(playerIdx);
+    emit();
+    if (ended) return; // applySteal 内部 checkWin 已将 phase 置 gameOver
   }
 
   // 一扩·海星三人组：1 张海星 + 1 对成对牌打到面前，该组共 3 分，但取消那一对的效果
@@ -325,25 +398,39 @@
     finishRound(res);
   }
 
-  // 宣告 Last Chance
+  // 宣告 Last Chance：亮出手牌（受保护），其余每个对手各打一个最终回合后结算
   function callLastChance() {
     if (!S || S.phase !== 'call') return;
     snapshot();
     logP('宣告：LAST CHANCE（亮出手牌，赌自己最高）');
     S.roundEnder = S.current;
     S.lastChance = { caller: S.current };
-    if (S.current === AI) S.revealAI = true;
-    S.current = 1 - S.current;
+    S.lcProtected = [S.current];                 // 宣告者已亮牌、从此刻起不能被偷/被锁
+    if (isAI(S.current)) S.revealIdx = S.current; // AI 宣告者亮出手牌
     clearHistory(); // 行动权已交出，宣告之前的操作不再可悔
-    S.pairPlays = 0;
-    S.phase = 'draw';
-    // 对手无法摸牌（全空）→ 直接结算（最终回合视作无操作）
-    if (R.legalDraw(S).none) {
-      const res = R.resolveRound(S.players, S.lastChance.caller, 'lastchance');
+    beginOrResolveFinalTurn();
+  }
+
+  // Last Chance 窗口：推进到下一个该打最终回合的对手（回到宣告者则结算）。
+  // 进入时 S.current 为刚宣告或刚打完最终回合的玩家。
+  function beginOrResolveFinalTurn() {
+    const caller = S.lastChance.caller;
+    const nxt = nextPlayer(S.current);
+    if (nxt === caller) {
+      const res = R.resolveRound(S.players, caller, 'lastchance');
+      log('最终回合结束，结算', 'sys');
       finishRound(res);
       return;
     }
-    if (consumeJellyLock()) return; // 对手被水母定住：最终回合也只能摸 1 张
+    S.current = nxt;
+    S.pairPlays = 0; S.phase = 'draw'; S.fast = false; S.extraTurns = 0;
+    clearHistory();
+    if (R.legalDraw(S).none) {          // 该对手无牌可摸 → 视作空最终回合，保护后继续推进
+      if (S.lcProtected.indexOf(S.current) === -1) S.lcProtected.push(S.current);
+      beginOrResolveFinalTurn();
+      return;
+    }
+    if (consumeJellyLock()) return;     // 被水母定住：只能摸 1 张，endTurn 会接手推进
     emit();
   }
 
@@ -384,11 +471,10 @@
       roundEndNoScore();
       return;
     }
-    // Last Chance 最终回合结束 → 结算
-    if (S.lastChance && S.current !== S.lastChance.caller) {
-      const res = R.resolveRound(S.players, S.lastChance.caller, 'lastchance');
-      log('最终回合结束，结算', 'sys');
-      finishRound(res);
+    // Last Chance 窗口：当前玩家刚打完最终回合 → 亮牌受保护，推进到下一个对手（回到宣告者则结算）
+    if (S.lastChance) {
+      if (S.lcProtected.indexOf(S.current) === -1) S.lcProtected.push(S.current);
+      beginOrResolveFinalTurn();
       return;
     }
     if (S.extraTurns > 0) {
@@ -397,7 +483,7 @@
       S.phase = 'draw';
       logP('使用额外回合');
     } else {
-      S.current = 1 - S.current;
+      S.current = nextPlayer(S.current);
       clearHistory(); // 换手即过账：上一手的快照作废
       S.pairPlays = 0;
       S.phase = 'draw';
@@ -415,15 +501,15 @@
 
   function finishRound(res) {
     S.roundResult = res;
-    S.players[0].total += res.scores[0];
-    S.players[1].total += res.scores[1];
+    for (let i = 0; i < S.numPlayers; i++) S.players[i].total += res.scores[i];
     S.phase = 'roundOver';
     emit();
   }
 
   function roundEndNoScore() {
     S.roundEnder = S.current;
-    S.roundResult = { noScore: true, mode: 'none', callerIdx: S.current, scores: [0, 0], details: [null, null], bonuses: [0, 0] };
+    const z = function () { return S.players.map(function () { return 0; }); };
+    S.roundResult = { noScore: true, mode: 'none', callerIdx: S.current, scores: z(), details: S.players.map(function () { return null; }), bonuses: z() };
     S.phase = 'roundOver';
     emit();
   }
@@ -431,18 +517,27 @@
   // 结算弹层点"继续"后
   function continueAfterRound() {
     if (!S || S.phase !== 'roundOver') return;
-    const t0 = S.players[0].total, t1 = S.players[1].total;
-    if (t0 >= TARGET || t1 >= TARGET) {
-      const winner = t0 === t1 ? S.lastToAct : (t0 > t1 ? HUMAN : AI); // 边缘10
+    let maxTotal = -Infinity;
+    for (const p of S.players) maxTotal = Math.max(maxTotal, p.total);
+    if (maxTotal >= S.target) {
+      // 赢家 = 总分最高者；平分时按上一轮实发分更高者胜（官方），仍并列则最后行动者胜
+      const tied = [];
+      for (let i = 0; i < S.numPlayers; i++) if (S.players[i].total === maxTotal) tied.push(i);
+      let winner = tied[0];
+      if (tied.length > 1) {
+        const last = (S.roundResult && S.roundResult.scores) ? S.roundResult.scores : [];
+        tied.sort(function (a, b) { return (last[b] || 0) - (last[a] || 0); });
+        winner = ((last[tied[0]] || 0) === (last[tied[1]] || 0)) ? S.lastToAct : tied[0];
+      }
       S.gameOver = { winner: winner, byMermaid: false };
       S.phase = 'gameOver';
       emit();
       return;
     }
     S.round++;
-    S.current = 1 - S.roundEnder; // 上轮结束者的下家先手
+    S.current = nextPlayer(S.roundEnder); // 上轮结束者的下家先手
     setupBoard();
-    log('—— 第 ' + S.round + ' 轮开始，' + (S.current === HUMAN ? '你' : 'AI') + ' 先手 ——', 'sys');
+    log('—— 第 ' + S.round + ' 轮开始，' + playerLabel(S.current) + ' 先手 ——', 'sys');
     if (R.legalDraw(S).none) { roundEndNoScore(); return; }
     emit();
   }
@@ -452,8 +547,7 @@
 
   const SPGame = {
     get state() { return S; },
-    TARGET: TARGET,
-    HUMAN: HUMAN, AI: AI,
+    HUMAN: HUMAN,
     onChange: function (fn) { listeners.push(fn); },
     newGame: newGame,
     drawFromDeck: drawFromDeck,
@@ -464,6 +558,7 @@
     playTrio: playTrio,
     crabPick: crabPick,
     lobsterPick: lobsterPick,
+    pickTarget: pickTarget,
     skipDuos: skipDuos,
     undo: undo,
     canUndo: canUndo,

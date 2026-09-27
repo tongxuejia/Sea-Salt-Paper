@@ -12,6 +12,20 @@
 .card svg.card-art { width: 88%; height: 74%; margin: 9% auto 0; display: block; }
 .card svg { display: block; }
 
+/* 白边：仿原版卡牌的一圈白色边框。用内嵌伪元素描边，盖在牌面底色之上、内容之下，
+   不占布局、不受 hover/选中/一扩等 box-shadow 状态影响（牌面底色与描边色由内联 cardBgStyle 控制，
+   拿真 border 会被内联 border-color 盖掉、拿 background-clip 会被内联 background 简写重置，故走 ::after）*/
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid #fff;
+  border-radius: 8px; /* 比牌圆角(9px)小 1px，白框沿内缘走 */
+  pointer-events: none; /* 白框不拦点击 */
+}
+/* 小牌（桌面展示/背面预览）白边相应收细，免得 3px 把牌面挤没 */
+.card.size-table::after, .card.size-mini::after { border-width: 2px; }
+
 /* 尺寸（宽×高按扑克比例 5:7）
    具体数值由 style.css :root 的 --hand-w 等变量驱动：视口越小牌越小，
    手机上三区 + 牌库能一屏放下。改牌档只改那些变量，本文件不写死 px。 */

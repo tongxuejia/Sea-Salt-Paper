@@ -31,9 +31,38 @@
     return evalCards(hand.concat([c]), table) - evalCards(hand, table);
   }
 
+  // 可作为偷/锁目标的对手：排除自己，及 Last Chance 窗口内已亮牌受保护者（宣告者 + 已打完最终回合的对手）
+  function opponentIdxs(state) {
+    const n = state.numPlayers || state.players.length;
+    const prot = state.lastChance ? state.lcProtected.concat([state.lastChance.caller]) : [];
+    const out = [];
+    for (let i = 0; i < n; i++) if (i !== state.current && prot.indexOf(i) === -1) out.push(i);
+    return out;
+  }
+  // 偷牌目标：手牌非空、平均每张价最高（随机偷一张，期望收益最高）的对手；无则 -1
+  function stealTarget(state) {
+    let best = -1, bv = -Infinity;
+    for (const i of opponentIdxs(state)) {
+      const o = state.players[i];
+      if (!o.hand.length) continue;
+      const v = evalCards(o.hand, o.table) / o.hand.length;
+      if (v > bv) { bv = v; best = i; }
+    }
+    return best;
+  }
+  // 锁手目标：当前牌面威胁（手+面前分）最高的对手；无则 -1
+  function lockTarget(state) {
+    let best = -1, bv = -Infinity;
+    for (const i of opponentIdxs(state)) {
+      const v = R.scoreHand(state.players[i]);
+      if (v > bv) { bv = v; best = i; }
+    }
+    return best;
+  }
+
   function decide(state) {
     const me = state.players[state.current];
-    const opp = state.players[1 - state.current];
+    const hasSteal = opponentIdxs(state).some(function (i) { return state.players[i].hand.length; });
 
     switch (state.phase) {
       case 'draw': {
@@ -78,7 +107,7 @@
         for (const tr of trios) {
           const dead = (tr.pairType === 'crab' && !state.discards[0].length && !state.discards[1].length) ||
             (tr.pairType === 'fish' && !state.deck.length) ||
-            (tr.pairType === 'sharkswimmer' && !opp.hand.length) ||
+            (tr.pairType === 'sharkswimmer' && !hasSteal) ||
             (tr.pairType === 'lobstercrab' && !state.deck.length) ||
             tr.pairType === 'jellyfishswimmer';
           if (dead) return { action: 'playTrio', args: [tr.ids] };
@@ -88,11 +117,11 @@
         for (const pr of pairs) {
           if (pr.type === 'boat') return { action: 'playPair', args: [pr.ids] };
           if (pr.type === 'fish' && state.deck.length > 0) return { action: 'playPair', args: [pr.ids] };
-          if (pr.type === 'sharkswimmer' && opp.hand.length > 0) return { action: 'playPair', args: [pr.ids] };
+          if (pr.type === 'sharkswimmer') { const t = stealTarget(state); if (t >= 0) return { action: 'playPair', args: [pr.ids, t] }; }
           // 一扩·龙虾：牌库有牌就值得翻 5 挑 1
           if (pr.type === 'lobstercrab' && state.deck.length > 0) return { action: 'playPair', args: [pr.ids] };
-          // 一扩·水母：锁住对手下一回合（对手无法摸牌时效果无意义）
-          if (pr.type === 'jellyfishswimmer' && !R.legalDraw(state).none) return { action: 'playPair', args: [pr.ids] };
+          // 一扩·水母：锁住威胁最高的对手（无可锁对手时效果无意义）
+          if (pr.type === 'jellyfishswimmer' && !R.legalDraw(state).none) { const t = lockTarget(state); if (t >= 0) return { action: 'playPair', args: [pr.ids, t] }; }
           if (pr.type === 'crab') {
             let best = 0;
             for (const pile of state.discards) {
@@ -129,7 +158,13 @@
 
       case 'call': {
         const my = R.scoreHand(me);
-        const oppEst = R.scoreHand({ hand: [], table: opp.table }) + opp.hand.length * 0.8;
+        // 需赢过所有对手，故以最强对手为估计
+        let oppEst = 0;
+        for (const i of opponentIdxs(state)) {
+          const o = state.players[i];
+          const e = R.scoreHand({ hand: [], table: o.table }) + o.hand.length * 0.8;
+          if (e > oppEst) oppEst = e;
+        }
         // 牌库将尽：本轮可能无人得分，尽快停
         if (state.deck.length <= 2) {
           return { action: Math.random() < 0.85 ? 'callStop' : 'callLastChance', args: [] };

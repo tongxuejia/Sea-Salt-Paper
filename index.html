@@ -10,16 +10,30 @@
 <body>
 <div id="app">
 
+  <!-- 电脑对手区（顶部堆叠：AI1 在上、AI2 在下，仅 3 人局显示） -->
+  <div id="ai-stack">
   <!-- AI 区 -->
   <section id="ai-zone">
     <div class="zone-head">
-      <span class="pname">AI 对手</span>
+      <span class="pname" id="ai-pname">AI 对手</span>
       <span class="pstats">总分 <b id="ai-total">0</b> ｜ 面前 <b id="ai-table-score">0</b> 分 ｜ 手牌 <b id="ai-hand-count">0</b> 张</span>
     </div>
     <div id="ai-hand" class="hand-row"></div>
     <div id="ai-table" class="table-row"></div>
     <div id="ai-bubble"></div>
   </section>
+
+  <!-- 第 2 个电脑对手（仅 3 人局显示）：紧跟 AI1 下方、同尺寸堆叠 -->
+  <section id="ai2-zone" class="hidden">
+    <div class="zone-head">
+      <span class="pname" id="ai2-pname">AI2</span>
+      <span class="pstats">总分 <b id="ai2-total">0</b> ｜ 面前 <b id="ai2-table-score">0</b> 分 ｜ 手牌 <b id="ai2-hand-count">0</b> 张</span>
+    </div>
+    <div id="ai2-hand" class="hand-row"></div>
+    <div id="ai2-table" class="table-row"></div>
+    <div id="ai2-bubble"></div>
+  </section>
+  </div>
 
   <!-- 中央：牌库与弃牌堆 -->
   <section id="center-zone">

@@ -268,36 +268,39 @@
 
   // ---------- 轮结算 ----------
 
-  // mode: 'stop' | 'lastchance'；callerIdx 为宣告者下标（0=玩家，1=AI）
-  // 返回 { mode, callerIdx, callerWon, scores:[p0,p1], details:[scoreDetails,scoreDetails],
-  //        bonuses:[颜色奖励p0,p1] }（bonuses 仅 lastchance 且对应结算时计入，stop 恒 0）
+  // mode: 'stop' | 'lastchance'；callerIdx 为宣告者下标。支持 2~4 人（players 数组长度即人数）。
+  // 官方规则：
+  //   STOP —— 所有人各拿自己的牌分（手+面前），无颜色奖励。
+  //   LAST CHANCE —— 宣告者牌分 ≥ 每一个对手则赌赢（宣告者拿牌分+自己颜色奖励，其余对手只拿颜色奖励）；
+  //                只要有一个对手牌分严格高于宣告者就赌输（宣告者只拿颜色奖励，其余对手拿牌分）。
+  // 返回 { mode, callerIdx, callerWon, scores:[按人], details:[按人], bonuses:[按人] }（bonuses 仅 lastchance 填、stop 恒 0）
   function resolveRound(players, callerIdx, mode) {
-    const oppIdx = 1 - callerIdx;
-    const dCaller = scoreDetails(players[callerIdx]);
-    const dOpp = scoreDetails(players[oppIdx]);
+    const n = players.length;
+    const details = players.map(function (p) { return scoreDetails(p); });
     const res = {
       mode: mode, callerIdx: callerIdx, callerWon: null,
-      scores: [0, 0], details: [null, null], bonuses: [0, 0],
+      scores: players.map(function () { return 0; }),
+      details: details, bonuses: players.map(function () { return 0; }),
     };
-    res.details[callerIdx] = dCaller;
-    res.details[oppIdx] = dOpp;
 
     if (mode === 'stop') {
-      res.scores[callerIdx] = dCaller.total;
-      res.scores[oppIdx] = dOpp.total;
-    } else {
-      const bonusC = colorBonus(players[callerIdx]);
-      const bonusO = colorBonus(players[oppIdx]);
-      res.bonuses[callerIdx] = bonusC;
-      res.bonuses[oppIdx] = bonusO;
-      if (dCaller.total >= dOpp.total) { // 平分算宣告者赢（边缘 9）
-        res.callerWon = true;
-        res.scores[callerIdx] = dCaller.total + bonusC;
-        res.scores[oppIdx] = bonusO;
+      for (let i = 0; i < n; i++) res.scores[i] = details[i].total;
+      return res;
+    }
+
+    // lastchance：先算每人颜色奖励，再比宣告者与所有对手的牌分（平分算宣告者赢，边缘 9）
+    const bonusOf = players.map(function (p) { return colorBonus(p); });
+    for (let i = 0; i < n; i++) res.bonuses[i] = bonusOf[i];
+    let callerWon = true;
+    for (let i = 0; i < n; i++) {
+      if (i !== callerIdx && details[i].total > details[callerIdx].total) callerWon = false;
+    }
+    res.callerWon = callerWon;
+    for (let i = 0; i < n; i++) {
+      if (i === callerIdx) {
+        res.scores[i] = callerWon ? details[i].total + bonusOf[i] : bonusOf[i];
       } else {
-        res.callerWon = false;
-        res.scores[callerIdx] = bonusC;
-        res.scores[oppIdx] = dOpp.total;
+        res.scores[i] = callerWon ? bonusOf[i] : details[i].total;
       }
     }
     return res;

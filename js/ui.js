@@ -243,13 +243,21 @@
   // infoMode：开启后点任意牌只看说明、不执行动作（避开“点牌=选牌”的冲突）；
   // 未开启时，点了没有动作可做的牌（面前的牌、AI 的牌、不能拿的弃牌堆顶等）也直接弹说明。
   let infoMode = false;
+  // 开始页选定的电脑对手数（1=2 人局、2=3 人局），startFromMenu 传给 newGame
+  let startOpponent = 1;
+
+  // 玩家显示名（0=你，其余取 label）：结算/横幅/日志前缀共用
+  function labelOf(S, i) { return i === 0 ? '你' : ((S.players[i] && S.players[i].label) || 'AI'); }
 
   function holderLine(c) {
     const S = global.SPGame.state;
     if (!S) return '';
     const cnt = function (arr) { return arr.filter(function (x) { return x.type === c.type; }).length; };
-    return '你手里 ' + cnt(S.players[0].hand) + ' 张 · 你面前 ' + cnt(S.players[0].table) +
-      ' 张 · AI 面前 ' + cnt(S.players[1].table) + ' 张';
+    let s = '你手里 ' + cnt(S.players[0].hand) + ' 张 · 你面前 ' + cnt(S.players[0].table) + ' 张';
+    for (let i = 1; i < S.players.length; i++) {
+      s += ' · ' + labelOf(S, i) + '面前 ' + cnt(S.players[i].table) + ' 张';
+    }
+    return s;
   }
 
   function cardInfoHTML(c) {
@@ -330,11 +338,11 @@
   // 用 .show 控制透明度显隐（预留高度、不致牌堆上下跳）。
   function turnBannerEl() { return $('turn-banner'); }
 
-  function showTurnBanner(text) {
+  function showTurnBanner(text, isAi) {
     const banner = turnBannerEl();
     if (!banner) return;
     banner.textContent = text;
-    banner.classList.toggle('ai', text.indexOf('电脑') === 0);
+    banner.classList.toggle('ai', !!isAi);
     banner.classList.add('show');
     if (bannerTimer) clearTimeout(bannerTimer);
     bannerTimer = setTimeout(hideTurnBanner, 1600);
@@ -381,6 +389,24 @@
     qb.title = quickMode ? '快速模式已开：点牌直接拿，不弹气泡' : '快速模式已关：点牌先弹功能简介＋拿取（点此开启快速）';
   }
 
+  // 渲染一个电脑对手区（手牌背面/亮牌、面前牌、分数、专属气泡）
+  // ids 把该区各元素的 DOM id 传进来，顶部 #ai-zone 与中央区 #ai2-zone 复用同一段绘制逻辑
+  function renderAiZone(S, idx, ids) {
+    const p = S.players[idx];
+    const faceUp = S.revealIdx === idx;   // 该 AI 手牌是否公开（宣告者亮牌时）
+    $(ids.total).textContent = p.total;
+    $(ids.tableScore).textContent = R.scoreHand({ hand: [], table: p.table });
+    $(ids.handCount).textContent = p.hand.length;
+    const handEl = $(ids.hand);
+    handEl.innerHTML = '';
+    for (const c of p.hand) handEl.appendChild(cardEl(c, 'mini', faceUp));
+    const tableEl = $(ids.table);
+    tableEl.innerHTML = '';
+    for (const c of p.table) tableEl.appendChild(cardEl(c, 'table', true));
+    const last = [...S.log].reverse().find(function (e) { return e.side === 'ai' && e.by === idx; });
+    $(ids.bubble).textContent = last ? last.text : '';
+  }
+
   function render(S) {
     // 换人回合：清掉上一回合可能残留的自动计时器与没看完的横幅
     if (S && S.current !== lastTurnCurrent) {
@@ -408,7 +434,8 @@
     // 回合归属横幅：只在真的换人行动时弹一下（1.6 秒自动消失）
     if (S.current !== lastTurnCurrent) {
       lastTurnCurrent = S.current;
-      showTurnBanner(S.current === 0 ? '你的回合' : '电脑回合');
+      showTurnBanner(S.current === 0 ? '你的回合'
+        : (S.numPlayers >= 3 ? labelOf(S, S.current) + ' 回合' : '电脑回合'), S.current !== 0);
     }
     // 人类回合的两个「到期自动处理」：没对子可打→1 秒后结束成对阶段；弃牌只有一个合法堆→0.6 秒后自动弃
     if (S.current === 0 && S.phase === 'duo' && !autoSkipTimer) {
@@ -425,20 +452,21 @@
       undoBtn.title = canUndo ? '悔棋：撤回本回合的上一步操作' : '悔棋：只能撤销本回合内的操作';
     }
     syncQuickBtn();
-    const my = S.players[0], ai = S.players[1];
+    const my = S.players[0];
     const myScore = R.scoreHand(my);
-    const aiTableScore = R.scoreHand({ hand: [], table: ai.table });
 
-    // 顶部 AI 区
-    $('ai-total').textContent = ai.total;
-    $('ai-table-score').textContent = aiTableScore;
-    $('ai-hand-count').textContent = ai.hand.length;
-    const aiHand = $('ai-hand');
-    aiHand.innerHTML = '';
-    for (const c of ai.hand) aiHand.appendChild(cardEl(c, 'mini', S.revealAI));
-    const aiTable = $('ai-table');
-    aiTable.innerHTML = '';
-    for (const c of ai.table) aiTable.appendChild(cardEl(c, 'table', true));
+    // 电脑对手区：玩家 1 恒在顶部 #ai-zone；玩家 2（3 人局）在中央区下半的 #ai2-zone
+    $('ai-pname').textContent = S.numPlayers >= 3 ? labelOf(S, 1) : 'AI 对手';
+    renderAiZone(S, 1, { total: 'ai-total', tableScore: 'ai-table-score', handCount: 'ai-hand-count', hand: 'ai-hand', table: 'ai-table', bubble: 'ai-bubble' });
+    const ai2Zone = $('ai2-zone');
+    if (ai2Zone) {
+      if (S.numPlayers >= 3) {
+        ai2Zone.classList.remove('hidden');
+        renderAiZone(S, 2, { total: 'ai2-total', tableScore: 'ai2-table-score', handCount: 'ai2-hand-count', hand: 'ai2-hand', table: 'ai2-table', bubble: 'ai2-bubble' });
+      } else {
+        ai2Zone.classList.add('hidden');
+      }
+    }
 
     // 中部牌库与弃牌堆
     $('deck-count').textContent = S.deck.length + ' 张';
@@ -576,12 +604,11 @@
     for (const e of S.log.slice(-6)) {
       const d = document.createElement('div');
       d.className = 'log-line ' + e.side;
-      d.textContent = (e.side === 'you' ? '你：' : e.side === 'ai' ? 'AI：' : '') + e.text;
+      const who = e.by != null && e.by >= 0 ? labelOf(S, e.by) : '';
+      d.textContent = (who ? who + '：' : '') + e.text;
       logEl.appendChild(d);
     }
     logEl.scrollTop = logEl.scrollHeight;
-    const lastAi = [...S.log].reverse().find(function (e) { return e.side === 'ai'; });
-    $('ai-bubble').textContent = lastAi ? lastAi.text : '';
 
     // 覆盖层
     renderOverlay(S);
@@ -591,7 +618,8 @@
   }
 
   // ---------- 飞牌特效 ----------
-  const FX_SOURCE = { deck: '#deck', discard0: '#discard-0', discard1: '#discard-1', aiHand: '#ai-hand', playerHand: '#player-hand' };
+  // 飞牌动画的源/目标选择器：键名与 main.js 的 handZone / setFx 一致（每个 AI 手牌区一个键）
+  const FX_SOURCE = { deck: '#deck', discard0: '#discard-0', discard1: '#discard-1', playerHand: '#player-hand', aiHand1: '#ai-hand', aiHand2: '#ai2-hand' };
   function reducedMotion() {
     return global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
@@ -600,10 +628,13 @@
     const fx = S.fx; S.fx = null;
     if (reducedMotion()) return;
     const srcEl = document.querySelector(FX_SOURCE[fx.from] || '__none__');
+    const toSel = FX_SOURCE[fx.to];
     let destEl, size;
-    if (fx.to === 'aiHand') {
-      const kids = document.querySelectorAll('#ai-hand .card');
-      destEl = kids.length ? kids[kids.length - 1] : document.querySelector('#ai-hand');
+    if (fx.to && fx.to.indexOf('aiHand') === 0 && toSel) {
+      // 飞进某个 AI 手牌区：目标取该区最后一张 mini 牌（没有则用容器本身）
+      const handEl = document.querySelector(toSel);
+      const kids = handEl ? handEl.querySelectorAll('.card') : [];
+      destEl = kids.length ? kids[kids.length - 1] : handEl;
       size = 'mini';
     } else {
       destEl = document.querySelector('#player-hand [data-card-id="' + fx.cardId + '"]');
@@ -723,7 +754,8 @@
       const owned = S.players[0].hand.filter(function (c) { return pair.ids.indexOf(c.id) !== -1; });
       if (owned.length !== pair.ids.length) continue;
       G.playPair(pair.ids);
-      if (S.phase === 'crabPick') {
+      // 螃蟹选牌 / 多人局鲨鱼水母选目标：都需等玩家点选，从断点续跑
+      if (S.phase === 'crabPick' || S.phase === 'targetPick') {
         scheduleAutoResume(S);
         return true; // 保留 pendingAutoSuggest，由调度器在真正回到 duo 时续跑
       }
@@ -744,8 +776,8 @@
       if (st.current === 0 && st.phase === 'duo') {
         const deferredAgain = playSnapshotPairs(st);
         if (!deferredAgain) pendingAutoSuggest = false; // 续跑链到头；又遇螃蟹则等下一次调度到点
-      } else if (st.phase === 'crabPick' && st.current === 0) {
-        scheduleAutoResume(st); // 玩家还没选完，继续等
+      } else if ((st.phase === 'crabPick' || st.phase === 'targetPick') && st.current === 0) {
+        scheduleAutoResume(st); // 玩家还没选完（蟹拿牌/选偷锁目标），继续等
       } else {
         pendingAutoSuggest = false; // 阶段已流转到别处（取消/结束回合等），放弃续跑
       }
@@ -757,7 +789,11 @@
     const inFinal = S.lastChance && S.current !== S.lastChance.caller;
     if (S.phase === 'roundOver') return '本轮结束';
     if (S.phase === 'gameOver') return '游戏结束';
-    if (!myTurn) return (S.jellyLock === 1 ? 'AI 被水母定住，本回合只能摸 1 张…' : 'AI 回合中…') + '（点击桌面任意处可加速）';
+    if (S.phase === 'targetPick') return '选目标：点一个对手承受鲨鱼偷牌 / 水母锁手';
+    if (!myTurn) {
+      const who = labelOf(S, S.current);
+      return (S.jellyLock === S.current ? who + ' 被水母定住，本回合只能摸 1 张…' : who + ' 回合中…') + '（点击桌面任意处可加速）';
+    }
     if (S.jellyLock === 0 && S.phase === 'draw') return '你被水母定住：只能从牌库摸 1 张';
     switch (S.phase) {
       case 'draw': return inFinal ? '最终回合：摸牌（点击牌库抽2 或 点弃牌堆顶）' : '你的回合：点击牌库抽 2 张（留 1 弃 1），或点弃牌堆顶拿 1 张';
@@ -842,6 +878,22 @@
           return '<div class="ov-card" data-action="lobsterPick" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
         }).join('') + '</div>' +
         '<div class="row">' + undoBtnHTML() + '</div>';
+    } else if (S.phase === 'targetPick' && S.current === 0) {
+      // 多人局人类打出 鲨鱼/水母 成对后选目标（2 人局会自动锁定唯一对手、不进此阶段）
+      const kind = S.pendingEffect ? S.pendingEffect.kind : '';
+      const verb = kind === 'sharkswimmer' ? '从其手牌随机偷 1 张' : '锁住其下一回合（只能摸 1 张、不出牌不宣告）';
+      const prot = S.lastChance ? S.lcProtected : [];
+      const btns = [];
+      for (let i = 0; i < S.numPlayers; i++) {
+        if (i === S.current || prot.indexOf(i) !== -1) continue;
+        const p = S.players[i];
+        btns.push('<button class="btn primary target-btn" data-action="pickTarget" data-player="' + i + '">' +
+          labelOf(S, i) + '<span class="tp-sub">手牌 ' + p.hand.length + ' 张 · 面前 ' + p.table.length + ' 张</span></button>');
+      }
+      html = '<h3>' + (kind === 'sharkswimmer' ? '鲨鱼 + 游泳者' : '水母 + 游泳者') + '：选一个对手承受效果</h3>' +
+        '<p class="hint">' + verb + '。已亮牌受保护的对手不在候选内。</p>' +
+        '<div class="row target-pick">' + btns.join('') + '</div>' +
+        '<div class="row">' + undoBtnHTML() + '</div>';
     } else if (S.phase === 'roundOver') {
       interactive = false;
       html = settlementHTML(S);
@@ -911,31 +963,38 @@
 
   function settlementHTML(S) {
     const res = S.roundResult;
+    const n = S.players.length;
     if (res.noScore) {
-      return '<h3>本轮无人得分</h3><p class="hint">牌库已空且无牌可摸，本轮直接结束，双方总分不变。</p>' +
-        '<div class="settle">' + handRevealHTML(S.players[0]) + '</div>' +
-        '<div class="settle">' + handRevealHTML(S.players[1]) + '</div>' +
-        '<div class="row"><button class="btn primary" data-action="continueAfterRound">继续</button></div>';
+      let h = '<h3>本轮无人得分</h3><p class="hint">牌库已空且无牌可摸，本轮直接结束，各方总分不变。</p>';
+      for (let i = 0; i < n; i++) h += '<div class="settle">' + handRevealHTML(S.players[i]) + '</div>';
+      return h + '<div class="row"><button class="btn primary" data-action="continueAfterRound">继续</button></div>';
     }
     const modeName = res.mode === 'stop' ? 'STOP（直接结算）' : 'LAST CHANCE（最后一搏）';
-    const callerName = res.callerIdx === 0 ? '你' : 'AI';
-    const oppName = res.callerIdx === 0 ? 'AI' : '你';
-    const d0 = res.details[0], d1 = res.details[1];
+    const callerName = labelOf(S, res.callerIdx);
     let html = '<h3>本轮结算 · ' + callerName + ' 宣告了 ' + modeName + '</h3>';
     if (res.mode === 'stop') {
-      html += '<p class="hint">STOP：双方都拿自己的牌分，本模式没有颜色奖励。</p>';
+      html += '<p class="hint">STOP：各方都拿自己的牌分，本模式没有颜色奖励。</p>';
     } else {
-      const cmp = d0.total === d1.total ? '两人牌分打平（' + d0.total + ' 分），平局算宣告者赢' : '牌分更高的是' + (d0.total > d1.total ? '你' : 'AI') + '（' + Math.max(d0.total, d1.total) + ' 分对 ' + Math.min(d0.total, d1.total) + ' 分）';
+      const cd = res.details[res.callerIdx].total;
+      let bestOpp = -Infinity, bestWho = '';
+      for (let i = 0; i < n; i++) {
+        if (i === res.callerIdx) continue;
+        if (res.details[i].total > bestOpp) { bestOpp = res.details[i].total; bestWho = labelOf(S, i); }
+      }
+      const cmp = bestOpp < 0 ? '没有对手' :
+        (cd > bestOpp ? '牌分最高的是宣告者 ' + callerName + '（' + cd + ' 对 ' + bestWho + ' ' + bestOpp + '）'
+          : cd === bestOpp ? '牌分打平（' + cd + '），平局算宣告者赢'
+          : '牌分最高的是对手 ' + bestWho + '（' + bestOpp + ' 对宣告者 ' + cd + '）');
       html += '<p class="hint">LAST CHANCE：' + cmp + '。' + (res.callerWon
-        ? callerName + ' 赌对了，拿“牌分 + 颜色奖励”，' + oppName + ' 只拿颜色奖励。'
-        : callerName + ' 没赌过，只拿颜色奖励，' + oppName + ' 拿自己的牌分。') + '</p>';
+        ? callerName + ' 赌对了，拿“牌分 + 颜色奖励”，其余对手只拿颜色奖励。'
+        : callerName + ' 没赌过，只拿颜色奖励，对手各拿自己的牌分。') + '</p>';
     }
-    for (const i of [0, 1]) {
+    for (let i = 0; i < n; i++) {
       const isCaller = res.callerIdx === i;
-      const name = (i === 0 ? '你' : 'AI') + (res.mode === 'lastchance' ? (isCaller ? '（宣告者）' : '（对手）') : '');
+      const name = labelOf(S, i) + (res.mode === 'lastchance' ? (isCaller ? '（宣告者）' : '（对手）') : '');
       const d = res.details[i];
       const bonus = R.colorBonus(S.players[i]); // 不用 res.bonuses（stop 下被置 0）
-      // 实发分归属（与 resolveRound 一致）：Stop 双方拿牌分；Last Chance 赌赢=宣告者拿牌分+颜色、对手只拿颜色；赌输=宣告者只拿颜色、对手拿牌分
+      // 实发分归属（与 resolveRound 一致）：Stop 各方拿牌分；Last Chance 赌赢=宣告者拿牌分+颜色、对手只拿颜色；赌输=宣告者只拿颜色、对手拿牌分
       const cardCounted = res.mode === 'stop' || (isCaller ? res.callerWon : !res.callerWon);
       const bonusCounted = res.mode === 'lastchance' && (isCaller || res.callerWon);
       const rows = settleRows(d, bonus, cardCounted, bonusCounted);
@@ -943,11 +1002,11 @@
       if (cardCounted && bonusCounted) {
         totalTxt = '牌分 ' + d.total + ' + 颜色奖励 ' + bonus + '，本轮得 ' + res.scores[i] + ' 分，总分达到 ' + S.players[i].total + ' 分';
       } else if (cardCounted) {
-        totalTxt = (res.mode === 'lastchance' ? '对方赌输，你拿牌分，' : '') + '本轮得 ' + res.scores[i] + ' 分，总分达到 ' + S.players[i].total + ' 分';
+        totalTxt = (res.mode === 'lastchance' ? '拿牌分（无颜色奖励），' : '') + '本轮得 ' + res.scores[i] + ' 分，总分达到 ' + S.players[i].total + ' 分';
       } else if (bonusCounted) {
-        totalTxt = (isCaller ? '宣告者牌分落后，' : '对方赌赢，') + '只拿颜色奖励 ' + bonus + ' 分，本轮得 ' + res.scores[i] + ' 分，总分达到 ' + S.players[i].total + ' 分';
+        totalTxt = (isCaller ? '牌分落后，' : '宣告者赌赢，') + '只拿颜色奖励 ' + bonus + ' 分，本轮得 ' + res.scores[i] + ' 分，总分达到 ' + S.players[i].total + ' 分';
       } else {
-        totalTxt = '本轮得 ' + res.scores[i] + ' 分，总分达到 ' + S.players[i].total + ' 分';
+        totalTxt = '本轮得 ' + res.scores[i] + ' 分，总分 ' + S.players[i].total + ' 分';
       }
       html += settleTableHTML(name, rows, totalTxt, handRevealHTML(S.players[i]));
     }
@@ -957,11 +1016,13 @@
 
   function gameOverHTML(S) {
     const g = S.gameOver;
-    const t0 = S.players[0].total, t1 = S.players[1].total;
     const win = g.winner === 0;
-    let html = '<h3>' + (win ? '你赢了！' : 'AI 获胜') + '</h3>';
-    html += '<p>' + (g.byMermaid ? (win ? '你' : 'AI') + ' 集齐 4 张美人鱼，直接获胜。' : (t0 === t1 ? '平分，最后行动者胜。' : '达到 ' + SPGame.TARGET + ' 分终局。')) + '</p>';
-    html += '<p class="score-line">你：' + t0 + ' ｜ AI：' + t1 + '</p>';
+    const winnerName = labelOf(S, g.winner);
+    let html = '<h3>' + (win ? '你赢了！' : winnerName + ' 获胜') + '</h3>';
+    html += '<p>' + (g.byMermaid ? winnerName + ' 集齐 4 张美人鱼，直接获胜。' : '有人达到 ' + S.target + ' 分，游戏结束。') + '</p>';
+    html += '<p class="score-line">' + S.players.map(function (p, i) {
+      return labelOf(S, i) + '：' + p.total;
+    }).join(' ｜ ') + '</p>';
     html += '<div class="row"><button class="btn primary" data-action="newGame">再来一局</button>' +
       '<button class="btn ghost" data-action="' + (S.useExp ? 'newGameNoExp' : 'newGameWithExp') + '">再来一局（' + (S.useExp ? '只用基础 58 张' : '含一扩 66 张') + '）</button></div>';
     return html;
@@ -1171,13 +1232,16 @@
         case 'callLastChance': G.callLastChance(); break;
         case 'passCall': G.passCall(); break;
         case 'continueAfterRound': G.continueAfterRound(); break;
-        // “再来一局”保持当前的一扩设置与皮肤不变
-        case 'newGame': { const keep = !!(G.state && G.state.useExp); G.newGame({ useExp: keep }); hidePanel(); break; }
-        case 'newGameWithExp': G.newGame({ useExp: true }); hidePanel(); break;
-        case 'newGameNoExp': G.newGame({ useExp: false }); hidePanel(); break;
-        // 开始页：选皮肤 / 直接开局
+        case 'pickTarget': G.pickTarget(+el.dataset.player); break;
+        // “再来一局”保持当前的一扩设置与对手数不变
+        case 'newGame': { const st = G.state; G.newGame({ useExp: !!(st && st.useExp), aiCount: st && st.numPlayers >= 3 ? 2 : 1 }); hidePanel(); break; }
+        case 'newGameWithExp': { const st = G.state; G.newGame({ useExp: true, aiCount: st && st.numPlayers >= 3 ? 2 : 1 }); hidePanel(); break; }
+        case 'newGameNoExp': { const st = G.state; G.newGame({ useExp: false, aiCount: st && st.numPlayers >= 3 ? 2 : 1 }); hidePanel(); break; }
+        // 开始页：选皮肤 / 选对手数 / 直接开局
         case 'pickSkinOrigami': setSkin('origami'); break;
         case 'pickSkinSticker': setSkin('sticker'); break;
+        case 'pickOpp1': startOpponent = 1; renderStartPage(); break;
+        case 'pickOpp2': startOpponent = 2; renderStartPage(); break;
         case 'startBasic': startFromMenu(false); break;
         case 'startExp': startFromMenu(true); break;
         case 'undo': doUndo(); break;
@@ -1251,10 +1315,22 @@
         '<div class="ss-skin-name">' + label + (on ? ' ✓' : '') + '</div>' +
         '<div class="ss-skin-note">' + note + '</div></div>';
     };
+    const oppCard = function (n, label, note) {
+      const on = startOpponent === n;
+      return '<div class="ss-opp' + (on ? ' on' : '') + '" data-action="pickOpp' + n + '" role="button" tabindex="0">' +
+        '<div class="ss-opp-name">' + label + (on ? ' ✓' : '') + '</div>' +
+        '<div class="ss-opp-note">' + note + '</div></div>';
+    };
     el.innerHTML =
       '<div class="ss-inner">' +
       '<h2 class="ss-title">海盐折纸</h2>' +
-      '<p class="ss-sub">Sea Salt &amp; Paper 网页版 · 你 vs AI</p>' +
+      '<p class="ss-sub">Sea Salt &amp; Paper 网页版 · 你 vs ' + (startOpponent >= 2 ? 'AI1 · AI2' : 'AI') + '</p>' +
+      '<div class="ss-label">电脑对手</div>' +
+      '<div class="ss-opps">' +
+      oppCard(1, '1 个电脑', '2 人局 · 目标 40 分') +
+      oppCard(2, '2 个电脑', '3 人局 · 目标 35 分') +
+      '</div>' +
+      '<div class="ss-label">卡面皮肤</div>' +
       '<div class="ss-skins">' +
       skinCard('origami', '折纸风', '默认：手写矢量插画') +
       skinCard('sticker', '卡通贴纸风', '粗描边 + 平涂') +
@@ -1268,11 +1344,11 @@
     el.classList.remove('hidden');
   }
 
-  // 从开始页开局：隐藏开始页，按当前皮肤重开一局
+  // 从开始页开局：隐藏开始页，按当前皮肤与对手数重开一局
   function startFromMenu(useExp) {
     const el = $('start-page');
     if (el) el.classList.add('hidden');
-    global.SPGame.newGame({ useExp: useExp });
+    global.SPGame.newGame({ useExp: useExp, aiCount: startOpponent });
   }
 
   // ---------- 启动 ----------
