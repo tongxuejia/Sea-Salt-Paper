@@ -839,7 +839,7 @@
       html = '<h3>龙虾效果：翻看牌库顶 ' + S.pendingLobster.length + ' 张，选 1 张入手</h3>' +
         '<p class="hint">其余 ' + (S.pendingLobster.length - 1) + ' 张放回牌库并重新洗整库（对手看不到你拿了哪张）</p>' +
         '<div class="row">' + S.pendingLobster.map(function (c) {
-          return '<div class="ov-card" data-action="lobsterPick" data-card-id="' + c.id + '">' + cardHTML(c, 'mini') + '</div>';
+          return '<div class="ov-card" data-action="lobsterPick" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
         }).join('') + '</div>' +
         '<div class="row">' + undoBtnHTML() + '</div>';
     } else if (S.phase === 'roundOver') {
