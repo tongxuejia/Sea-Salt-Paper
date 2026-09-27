@@ -97,9 +97,12 @@ body {
 /* ---------- 日志 ---------- */
 #log {
   width: min(760px, 96%);
-  flex: 1 1 auto;
+  /* 不再 1 1 auto 拉伸占满中央区剩余高度：窗口只显 3 行，6 条记录内部滚动，
+     腾出的下半截纵向空间留给以后的第二个 AI 区（#app 是 auto 1fr auto 网格，
+     新增对手就多一个 auto 行，1fr 余量会相应缩小） */
+  flex: 0 1 auto;
   min-height: 24px;
-  max-height: 134px; /* 只显示最近 6 条（ui.js 已 slice(-6)）：约 6 行 20px + 上下内边距 */
+  max-height: 74px; /* 约 3 行 20px + 上下内边距（ui.js 仍保留最近 6 条，滚动可见） */
   overflow-y: auto;
   font-size: 12.5px;
   color: #7a6a4d;
@@ -200,19 +203,19 @@ body {
    无论显隐都占一行高度，避免弹出/收起时牌堆上下跳；pointer-events:none 不挡点击 */
 #turn-banner {
   align-self: center;
-  min-height: 34px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 22px;
+  padding: 8px 30px;
   border-radius: 999px;
-  font-size: 16px;
+  font-size: 21px;
   font-weight: bold;
   letter-spacing: 1px;
   color: #fff;
   background: linear-gradient(180deg, #3f7d4e, #2f6340);
   border: 2px solid #2f6340;
-  box-shadow: 0 4px 12px rgba(30, 20, 5, 0.25);
+  box-shadow: 0 5px 16px rgba(30, 20, 5, 0.3);
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity .18s ease, transform .18s ease;
@@ -466,7 +469,7 @@ body {
 @media (max-width: 900px) {
   #app { padding: 6px; gap: 4px; }
   .piles { gap: 22px; }
-  #log { max-height: 120px; }
+  #log { max-height: 74px; }
 }
 
 /* 触屏（手机/平板）：无 hover 可用，所以触控目标放大到 44px、并用 :active 做反馈 */
@@ -498,9 +501,9 @@ body {
   #help-btn, #rules-btn, #undo-btn, #quick-btn { width: 32px; height: 32px; font-size: 14px; }
   #exp-btn { font-size: 12px; }
   #corner-btns { gap: 6px; }
-  /* 日志：手机上不锁死小高度（以前 52px，剩下的 120~180px 变成牌库下面的死空白），
-     改成随视口高度给到 26vh，多出来的历史自己滚，不用的部分交给 space-between 分散 */
-  #log { min-height: 28px; max-height: 26vh; font-size: 11px; padding: 3px 8px; line-height: 1.45; }
+  /* 日志：统一 3 行小窗口（与桌面同值，6 条记录内部滚动），
+     腾出的纵向空间留给以后的第二个 AI 区；不再用 26vh 随视口拉伸 */
+  #log { min-height: 28px; max-height: 74px; font-size: 11px; padding: 3px 8px; line-height: 1.45; }
   /* 玩家面板：行高由 :root 的牌宽变量自动算（不再写死 84/56） */
   .hand-row { gap: 4px; padding: 2px 1px; }
   .table-row { gap: 4px; }
@@ -537,21 +540,21 @@ body {
      否则三个宣告按钮的整宽加起来超 366px，会被顶成三行把玩家区抬高 30px */
   #call-bar .btn .bt-long, #duo-bar .btn .bt-long { display: none; }
   #call-bar .btn .bt-short, #duo-bar .btn .bt-short { display: inline; }
-  /* 回合横幅收小一号：手机上不吃掉牌区高度 */
-  #turn-banner { font-size: 15px; padding: 4px 18px; min-height: 30px; }
+  /* 回合横幅收小一号：手机上不吃掉牌区高度（桌面已放大到 21px，这里相对降一档） */
+  #turn-banner { font-size: 18px; padding: 5px 22px; min-height: 38px; }
 }
 
 /* 矮视口（手机横屏 / 小窗口）：宽度超过 640px 所以上面的手机块不生效，
    但纵向只有 390px 可用，这里把提示条/日志/气泡收到最小，否则整页要上下滑 */
 @media (max-height: 560px) {
   /* 矮视口里横幅收到最小，不多吃牌区高度 */
-  #turn-banner { font-size: 13px; padding: 2px 14px; min-height: 26px; }
+  #turn-banner { font-size: 14px; padding: 2px 14px; min-height: 26px; }
   /* 牌档再降一档：390px 高时按 10.2vh 算会卡在 42px 下限下不来，牌行就吃掉横屏本就不多的余量 */
   :root { --hand-w: clamp(34px, min(13.4vw, 9.4vh), 74px); }
   #app { padding: 4px; gap: 2px; }
   #ai-zone, #player-zone { padding: 3px 8px; gap: 2px; }
   #phase-bar { font-size: 12px; padding: 2px 12px; min-height: 20px; }
-  #log { min-height: 20px; max-height: 12vh; font-size: 11px; line-height: 1.45; padding: 3px 8px; }
+  #log { min-height: 20px; max-height: 64px; font-size: 11px; line-height: 1.45; padding: 3px 8px; }
   #ai-bubble { min-height: 0; }
   .piles { gap: 14px; }
   .pile-label { font-size: 10.5px; }
