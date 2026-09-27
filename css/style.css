@@ -425,7 +425,7 @@ body {
   flex-direction: column;
   gap: 8px;
 }
-#help-btn, #rules-btn, #undo-btn {
+#help-btn, #rules-btn, #undo-btn, #quick-btn {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -441,6 +441,14 @@ body {
   background: #eaf4fb;
   border-color: #5a9bd0;
   color: #1a5c8a;
+}
+/* 快速模式按钮：默认（关）普通色；开启时高亮为琥珀色实心，一眼看出当前是“直接拿” */
+#quick-btn { color: #a06b1e; }
+#quick-btn.on {
+  background: #e8912d;
+  border-color: #b3541e;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(232, 145, 45, 0.35);
 }
 #undo-btn {
   background: #eef6ee;
@@ -467,7 +475,7 @@ body {
 @media (hover: none), (pointer: coarse) {
   .btn { min-height: 44px; padding: 10px 18px; font-size: 14px; }
   .btn.mini { min-height: 40px; padding: 7px 14px; font-size: 13px; }
-  #help-btn, #rules-btn, #undo-btn, #info-btn, #exp-btn { width: 44px; height: 44px; font-size: 18px; }
+  #help-btn, #rules-btn, #undo-btn, #quick-btn { width: 44px; height: 44px; font-size: 18px; }
   #exp-btn { font-size: 15px; }
   /* 触屏上 :hover 会“粘住”不消，这里关掉并换成按下去的 :active 反馈 */
   .btn:hover { transform: none; box-shadow: none; }
@@ -489,7 +497,7 @@ body {
   .piles-block { gap: 4px; }
   /* 五个圆钮：触屏块里的 44px 在手机上一行占掉 252px、把牌库挤得很局促，
      收到 32px（本块排在触屏块之后，同特异性会覆盖它的 44px） */
-  #help-btn, #rules-btn, #undo-btn, #info-btn, #exp-btn { width: 32px; height: 32px; font-size: 14px; }
+  #help-btn, #rules-btn, #undo-btn, #quick-btn { width: 32px; height: 32px; font-size: 14px; }
   #exp-btn { font-size: 12px; }
   #corner-btns { gap: 6px; }
   /* 日志：手机上不锁死小高度（以前 52px，剩下的 120~180px 变成牌库下面的死空白），

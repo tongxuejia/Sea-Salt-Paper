@@ -131,6 +131,18 @@
     if (startEl && !startEl.classList.contains('hidden')) renderStartPage();
   }
 
+  // ---------- 快速模式（点牌直接拿 vs 先弹「功能简介+拿取」气泡）----------
+  // 与皮肤一样持久化在 localStorage；默认关（即显示气泡，保留新手引导）。
+  const QUICK_KEY = 'ssp-quick';
+  function getSavedQuick() {
+    try { return !!(global.localStorage && global.localStorage.getItem(QUICK_KEY) === '1'); }
+    catch (e) { return false; } // 无 localStorage 环境（node 自测）默认关
+  }
+  function setSavedQuick(v) {
+    try { if (global.localStorage) global.localStorage.setItem(QUICK_KEY, v ? '1' : '0'); } catch (e) { /* 存不上也不影响本局 */ }
+  }
+  let quickMode = getSavedQuick();
+
   const BACK_SVG = '<rect x="0" y="0" width="100" height="140" fill="#2c5a8c"/><path d="M0,30 Q12,22 25,30 T50,30 T75,30 T100,30" stroke="#4a7cae" stroke-width="3" fill="none"/><path d="M0,55 Q12,47 25,55 T50,55 T75,55 T100,55" stroke="#4a7cae" stroke-width="3" fill="none"/><path d="M0,80 Q12,72 25,80 T50,80 T75,80 T100,80" stroke="#4a7cae" stroke-width="3" fill="none"/><path d="M0,105 Q12,97 25,105 T50,105 T75,105 T100,105" stroke="#4a7cae" stroke-width="3" fill="none"/><polygon points="50,52 62,70 50,88 38,70" fill="#f2efe6"/><circle cx="50" cy="70" r="5" fill="#2c5a8c"/>';
 
   // ---------- 卡牌 DOM ----------
@@ -369,6 +381,14 @@
     if (autoDiscardTimer) { clearTimeout(autoDiscardTimer); autoDiscardTimer = null; }
   }
 
+  // ⚡ 快速模式按钮的高亮态与提示文案（render 与切换时都调）
+  function syncQuickBtn() {
+    const qb = $('quick-btn');
+    if (!qb) return;
+    qb.classList.toggle('on', quickMode);
+    qb.title = quickMode ? '快速模式已开：点牌直接拿，不弹气泡' : '快速模式已关：点牌先弹功能简介＋拿取（点此开启快速）';
+  }
+
   function render(S) {
     // 换人回合：清掉上一回合可能残留的自动计时器与没看完的横幅
     if (S && S.current !== lastTurnCurrent) {
@@ -412,6 +432,7 @@
       undoBtn.disabled = !canUndo;
       undoBtn.title = canUndo ? '悔棋：撤回本回合的上一步操作' : '悔棋：只能撤销本回合内的操作';
     }
+    syncQuickBtn();
     const my = S.players[0], ai = S.players[1];
     const myScore = R.scoreHand(my);
     const aiTableScore = R.scoreHand({ hand: [], table: ai.table });
@@ -447,8 +468,8 @@
       if (pile.length) {
         const top = pile[pile.length - 1];
         const e = cardEl(top, 'pile', true, canTake ? 'clickable takeable' : '');
-        if (canTake) { e.dataset.action = 'previewTake'; e.dataset.kind = 'discard'; e.dataset.pile = i; }
-        const previewing = canTake && takePreview && takePreview.kind === 'discard' && takePreview.pile === i;
+        if (canTake) { e.dataset.action = quickMode ? 'takeDiscard' : 'previewTake'; e.dataset.kind = 'discard'; e.dataset.pile = i; }
+        const previewing = !quickMode && canTake && takePreview && takePreview.kind === 'discard' && takePreview.pile === i;
         if (previewing) e.classList.add('selected');
         el.appendChild(e);
         const n = document.createElement('div');
@@ -778,8 +799,10 @@
           '</div>';
       }
       // 抽二弃一流程（保留/弃置）不提供悔棋：一旦开始选牌，回退到“未抽”状态无意义且易乱
-      // 两步选牌：点候选牌→就地高亮并浮出「功能简介 + 拿取」（拿取=保留这张），再点同一张取消
-      const previewCard = keepPreviewId != null
+      // 两步选牌（快速模式关时）：点候选牌→就地高亮并浮出「功能简介 + 拿取」（拿取=保留这张），再点同一张取消
+      // 快速模式开时：点候选牌直接保留（data-action=keepCard），不弹气泡
+      const ovAction = quickMode ? 'keepCard' : 'previewKeep';
+      const previewCard = (!quickMode && keepPreviewId != null)
         ? S.pendingDraw.filter(function (c) { return c.id === keepPreviewId; })[0] : null;
       const confirmBar = previewCard
         ? '<div class="keep-confirm"><div class="kc-text">' + cardTitle(previewCard).replace('\n', '：') + '</div>' +
@@ -788,7 +811,7 @@
       html = '<h3>抽到 2 张，点选保留 1 张</h3><div class="row">' +
         S.pendingDraw.map(function (c) {
           const selCls = keepPreviewId === c.id ? ' selected' : '';
-          return '<div class="ov-card' + selCls + '" data-action="previewKeep" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
+          return '<div class="ov-card' + selCls + '" data-action="' + ovAction + '" data-card-id="' + c.id + '">' + cardHTML(c, 'ov') + '</div>';
         }).join('') + '</div>' + confirmBar +
         '<p class="hint">参考：两个弃牌堆当前的顶牌（下一步弃牌会用到）</p>' +
         '<div class="discard-choices">' + ref + '</div>';
@@ -1121,6 +1144,17 @@
           break;
         }
         case 'drawFromDeck': G.drawFromDeck(); break;
+        case 'takeDiscard': G.takeDiscard(+el.dataset.pile); break;
+        case 'keepCard': G.keepCard(+el.dataset.cardId); break;
+        case 'toggleQuick': {
+          quickMode = !quickMode;
+          setSavedQuick(quickMode);
+          takePreview = null; keepPreviewId = null;
+          syncQuickBtn();
+          const S = global.SPGame && global.SPGame.state;
+          if (S) render(S);
+          break;
+        }
         case 'previewKeep': {
           const id = +el.dataset.cardId;
           keepPreviewId = keepPreviewId === id ? null : id; // 再点同一张 = 取消预览
