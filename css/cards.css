@@ -206,6 +206,13 @@
   from { transform: translateY(-8px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* AI 落牌到位的高亮脉冲：飞牌影子落位瞬间闪一下，提示“这张进了 AI 手牌” */
+.card.card-landed { animation: cardLanded .5s ease-out; }
+@keyframes cardLanded {
+  0% { box-shadow: 0 0 0 0 rgba(232, 145, 45, 0.9); transform: scale(1.14); }
+  100% { box-shadow: 0 0 0 10px rgba(232, 145, 45, 0); transform: scale(1); }
+}
 @media (prefers-reduced-motion: reduce) {
   .card.card-new { animation: none; }
 }

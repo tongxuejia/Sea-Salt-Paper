@@ -635,7 +635,9 @@
       const handEl = document.querySelector(toSel);
       const kids = handEl ? handEl.querySelectorAll('.card') : [];
       destEl = kids.length ? kids[kids.length - 1] : handEl;
-      size = 'mini';
+      // 影子用 hand 大档（与人类一致）：AI 手牌区是 mini 小牌又在顶部紧凑区，
+      // 拿 mini 影子飞过去几乎看不见；飞的过程放大、落位仍是原来的 mini 小牌
+      size = 'hand';
     } else {
       destEl = document.querySelector('#player-hand [data-card-id="' + fx.cardId + '"]');
       size = 'hand';
@@ -664,7 +666,14 @@
     let done = false;
     const finish = function () {
       if (done) return; done = true;
-      if (hideDest) destEl.style.visibility = '';
+      if (hideDest) {
+        destEl.style.visibility = '';
+        // AI 落牌加一个短暂高亮脉冲：飞的是 hand 大牌、落的是 mini 小牌，不提示一下“到位”会很突兀
+        if (destEl.closest && destEl.closest('#ai-hand, #ai2-hand')) {
+          destEl.classList.add('card-landed');
+          setTimeout(function () { destEl.classList.remove('card-landed'); }, 500);
+        }
+      }
       if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
     };
     requestAnimationFrame(function () {
