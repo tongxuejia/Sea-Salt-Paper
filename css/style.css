@@ -166,6 +166,8 @@ body {
   width: calc(var(--table-w) * 0.78);
   height: calc(var(--table-w) * 0.78 * 1.4);
 }
+/* 行高同步收到 0.78 档：否则 table-row 的 min-height 仍按整档撑高 + align-items:flex-end 会把牌压到底、顶部空出一截 */
+#ai-table, #ai2-table { min-height: calc(var(--table-w) * 0.78 * 1.4 + 4px); }
 
 /* ---------- 按钮条 ---------- */
 #call-bar, #duo-bar {
