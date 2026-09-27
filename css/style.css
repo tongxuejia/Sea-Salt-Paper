@@ -67,7 +67,9 @@ body {
 /* AI 手牌用 mini 牌，行高按 mini 算（与 #ai-hand 同档） */
 #ai2-hand { min-height: calc(var(--mini-w) * 1.4 + 8px); }
 #ai2-bubble {
-  min-height: 18px;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
   font-size: 12px;
   color: #8a4a1a;
   font-style: italic;
@@ -159,6 +161,12 @@ body {
 /* 例外：玩家区的手牌行为开局保留一行占位高（开局 AI 先手、你还不手里没牌时），不至于整个玩家区塌得太窄；牌上手后自然被内容撑高 */
 #player-zone .hand-row:empty { min-height: calc(var(--hand-w) * 1.4 + 8px); padding: 4px 2px; }
 
+/* AI 面前亮出的牌比玩家的小一档（操作行已移入表头，这里再省一点纵向空间） */
+#ai-table .card.size-table, #ai2-table .card.size-table {
+  width: calc(var(--table-w) * 0.78);
+  height: calc(var(--table-w) * 0.78 * 1.4);
+}
+
 /* ---------- 按钮条 ---------- */
 #call-bar, #duo-bar {
   display: flex;
@@ -197,7 +205,9 @@ body {
 
 /* ---------- AI 气泡 ---------- */
 #ai-bubble {
-  min-height: 18px;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
   font-size: 12px;
   color: #8a4a1a;
   font-style: italic;
