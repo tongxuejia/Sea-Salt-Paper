@@ -282,6 +282,12 @@
   let keepPreviewId = null;
   // 「自动配对」被螃蟹覆盖层打断后的续跑标记
   let pendingAutoSuggest = false;
+  // 回合横幅：上一次弹过的行动方（-1 表示还没开过局，首次进入也会弹）、自动消失计时器
+  let lastTurnCurrent = -1;
+  let bannerTimer = null;
+  // 人类回合两个到期自动处理的计时器（成对无牌可打 / 弃牌只剩一个合法堆）
+  let autoSkipTimer = null;
+  let autoDiscardTimer = null;
 
   function clearSelection() { selection = []; }
 
@@ -307,7 +313,68 @@
     selection.push(id); // 上限由 selectHandCard 里的 selectionPromising 归一化控制（最多 3 张）
   }
 
+  // ---------- 回合提示与「到期自动处理」 ----------
+  // 横幅元素懒创建并挂在 #app 上：不用改 index.html，且弹层（#overlay）关掉后仍能复用
+  function turnBannerEl() {
+    const app = $('app');
+    if (!app) return null;
+    let banner = $('turn-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'turn-banner';
+      app.appendChild(banner);
+    }
+    return banner;
+  }
+
+  function showTurnBanner(text) {
+    const banner = turnBannerEl();
+    if (!banner) return;
+    banner.textContent = text;
+    banner.className = text.indexOf('电脑') === 0 ? 'ai' : '';
+    if (bannerTimer) clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(hideTurnBanner, 1600);
+  }
+
+  function hideTurnBanner() {
+    const banner = $('turn-banner');
+    if (banner) banner.className = 'hidden';
+    if (bannerTimer) { clearTimeout(bannerTimer); bannerTimer = null; }
+  }
+
+  // 成对阶段到期自动往下走：此刻已没有对子/三人组可打才真的结束回合（有得打或玩家正在点选就不插手）
+  function autoSkipDuos() {
+    autoSkipTimer = null;
+    const S = global.SPGame.state;
+    if (!S || S.current !== 0 || S.phase !== 'duo') return;
+    if (selection.length) return;
+    const my = S.players[0];
+    if (R.duoPairsInHand(my.hand).length || R.trioCombosInHand(my.hand).length) return;
+    global.SPGame.skipDuos();
+  }
+
+  // 弃牌阶段到期自动弃：规则上只有一个合法弃牌堆（另一堆为空时必须弃进空堆）时不再让玩家选
+  function autoDiscardOnlyTarget() {
+    autoDiscardTimer = null;
+    const S = global.SPGame.state;
+    if (!S || S.current !== 0 || S.phase !== 'discard') return;
+    const targets = R.discardTargets(S);
+    const only = targets[0] && !targets[1] ? 0 : (targets[1] && !targets[0] ? 1 : -1);
+    if (only < 0) return; // 两堆都合法：仍要玩家自己选
+    global.SPGame.discardTo(only);
+  }
+
+  function clearAutoTimers() {
+    if (autoSkipTimer) { clearTimeout(autoSkipTimer); autoSkipTimer = null; }
+    if (autoDiscardTimer) { clearTimeout(autoDiscardTimer); autoDiscardTimer = null; }
+  }
+
   function render(S) {
+    // 换人回合：清掉上一回合可能残留的自动计时器与没看完的横幅
+    if (S && S.current !== lastTurnCurrent) {
+      clearAutoTimers();
+      hideTurnBanner();
+    }
     // 状态校验：选中的牌必须仍在手牌且处于人类成对阶段，失效则清空（防偷牌/换阶段后残留）
     if (S && S.current === 0 && S.phase === 'duo' && S.players[0].hand.length) {
       const handIds = new Set(S.players[0].hand.map(function (c) { return c.id; }));
@@ -326,6 +393,18 @@
     }
     // 选牌弹层预览态：不在 keep 阶段就清除
     if (keepPreviewId != null && !(S.current === 0 && S.phase === 'keep')) keepPreviewId = null;
+    // 回合归属横幅：只在真的换人行动时弹一下（1.6 秒自动消失）
+    if (S.current !== lastTurnCurrent) {
+      lastTurnCurrent = S.current;
+      showTurnBanner(S.current === 0 ? '你的回合' : '电脑回合');
+    }
+    // 人类回合的两个「到期自动处理」：没对子可打→1 秒后结束成对阶段；弃牌只有一个合法堆→0.6 秒后自动弃
+    if (S.current === 0 && S.phase === 'duo' && !autoSkipTimer) {
+      autoSkipTimer = setTimeout(autoSkipDuos, 1000);
+    }
+    if (S.current === 0 && S.phase === 'discard' && !autoDiscardTimer) {
+      autoDiscardTimer = setTimeout(autoDiscardOnlyTarget, 600);
+    }
     // 悔棋圆钮的可用态
     const undoBtn = $('undo-btn');
     if (undoBtn) {
@@ -407,7 +486,7 @@
       const skip = document.createElement('button');
       skip.className = 'btn ghost';
       skip.dataset.action = 'skipDuos';
-      skip.textContent = inFinal ? '结束最终回合' : '跳过 / 结束回合';
+      skip.textContent = inFinal ? '结束最终回合' : '结束回合';
       duoBar.appendChild(skip);
 
       // 点选确认条：已选牌（2 张=成对，3 张=海星三人组）+ 确认打出/取消
@@ -672,7 +751,7 @@
       case 'duo': {
         const base = inFinal ? '最终回合：可点选两张手牌打出成对，然后结束回合' : '点选两张手牌组成对子（再点可取消），确认后打出；或用“自动配对”一次打完';
         // 手里还挂着未使用的额外回合（小船效果）：提醒玩家“先点结束回合才能开始新回合摸牌”，避免停在成对阶段误以为现在就能拿牌
-        return S.extraTurns > 0 ? base + '　→　已有额外回合待触发，点“跳过/结束回合”后开始' : base;
+        return S.extraTurns > 0 ? base + '　→　已有额外回合待触发，点“结束回合”后开始' : base;
       }
       case 'keep': return '选择保留 1 张';
       case 'discard': return '选择弃入哪个弃牌堆';

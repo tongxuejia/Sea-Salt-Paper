@@ -194,6 +194,37 @@ body {
   z-index: 50;
 }
 #overlay.hidden { display: none; }
+
+/* ---------- 回合归属横幅 ---------- */
+/* 挂在 #app 上、z-index 高于弹层 #overlay(50)，因为选牌/弃牌弹层开着时也要看得到是谁的回合；
+   pointer-events:none 保证它只做提示，不挡任何点击 */
+#turn-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  pointer-events: none;
+  padding: 10px 26px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(180deg, #3f7d4e, #2f6340);
+  border: 2px solid #2f6340;
+  box-shadow: 0 6px 18px rgba(30, 20, 5, 0.35);
+  animation: turnBannerIn .22s ease-out;
+}
+#turn-banner.ai {
+  background: linear-gradient(180deg, #5a7fa8, #3d5f84);
+  border-color: #3d5f84;
+}
+#turn-banner.hidden { display: none; }
+@keyframes turnBannerIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
 #overlay-card {
   background: #fdf8ec;
   border-radius: 16px;
@@ -500,11 +531,15 @@ body {
      否则三个宣告按钮的整宽加起来超 366px，会被顶成三行把玩家区抬高 30px */
   #call-bar .btn .bt-long, #duo-bar .btn .bt-long { display: none; }
   #call-bar .btn .bt-short, #duo-bar .btn .bt-short { display: inline; }
+  /* 回合横幅收小一号：手机上不吃掉牌区高度 */
+  #turn-banner { font-size: 15px; padding: 8px 20px; top: 8px; }
 }
 
 /* 矮视口（手机横屏 / 小窗口）：宽度超过 640px 所以上面的手机块不生效，
    但纵向只有 390px 可用，这里把提示条/日志/气泡收到最小，否则整页要上下滑 */
 @media (max-height: 560px) {
+  /* 矮视口里横幅改成左上角小胶囊，不盖住居中的牌区 */
+  #turn-banner { top: 6px; font-size: 13px; padding: 5px 14px; }
   /* 牌档再降一档：390px 高时按 10.2vh 算会卡在 42px 下限下不来，牌行就吃掉横屏本就不多的余量 */
   :root { --hand-w: clamp(34px, min(13.4vw, 9.4vh), 74px); }
   #app { padding: 4px; gap: 2px; }
